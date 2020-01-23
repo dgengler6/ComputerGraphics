@@ -16,6 +16,7 @@
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
+#include "VectorUtils3.h"
 
 // Globals
 // Data would normally be read from files
@@ -62,7 +63,7 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab1-1.vert","lab1-1.frag");
+	program = loadShaders("lab1-2.vert","lab1-2.frag");
 	printError("init shader");
 	
 	// Upload geometry to the GPU:
@@ -87,6 +88,8 @@ void init(void)
 	glBufferData(GL_ARRAY_BUFFER, 9*sizeof(GLfloat), colors, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Color"));
+
+    glUniformMatrix4fv(glGetUniformLocation(program, "myMatrix"), 1, GL_TRUE, myMatrix);
 	
 	// End of upload of geometry
 	printError("init arrays");
