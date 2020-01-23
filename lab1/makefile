@@ -8,6 +8,7 @@ OSSUF =c
 else
 OSFLAGS = -framework Cocoa -framework OpenGL -lm
 OSSUF =m
+UNAME=Mac
 endif
 
 
