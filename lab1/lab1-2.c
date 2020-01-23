@@ -24,9 +24,7 @@ GLfloat vertices[] =
 	0.7f,-0.2f,0.0f,
 	-0.0f,0.7f,0.0f,
 	-0.7f,-0.2f,0.0f,
-	0.0f,-0.2f,0.0f,
-	-0.3f,0.3f,0.0f,
-	0.3f,0.3f,0.0f
+	0.5f,-0.5f,0.0f
 };
 
 GLfloat colors[] =
@@ -34,10 +32,16 @@ GLfloat colors[] =
 	0.0f,1.0f,0.0f,
 	1.0f,0.0f,0.0f,
 	0.0f,0.0f,1.0f,
-	1.0f,.2f,1.0f,
-	1.0f,.2f,1.0f,
-	1.0f,.2f,1.0f
+	0.0f,0.0f,1.0f
 };
+
+GLfloat myMatrix[] = {    1.0f, 0.0f, 0.0f, 0.5f,
+
+                        0.0f, 1.0f, 0.0f, 0.0f,
+
+                        0.0f, 0.0f, 1.0f, 0.0f,
+
+                        0.0f, 0.0f, 0.0f, 1.0f };
 
 // vertex array object
 unsigned int vertexArrayObjID;
@@ -75,12 +79,12 @@ void init(void)
 	
 	// VBO for vertex data
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjID);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 12*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Position"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Position"));
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjIDColor);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(GLfloat), colors, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 9*sizeof(GLfloat), colors, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Color"));
 	
@@ -97,7 +101,6 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBindVertexArray(vertexArrayObjID);	// Select VAO
 	glDrawArrays(GL_TRIANGLES, 0,3);	// draw object
-	glDrawArrays(GL_TRIANGLES, 3,3);
 	printError("display");
 	
 	
