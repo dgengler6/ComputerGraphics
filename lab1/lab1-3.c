@@ -36,7 +36,7 @@ GLfloat colors[] =
 	0.0f,0.0f,1.0f
 };
 
-GLfloat myMatrix[] = {    1.0f, 0.0f, 0.0f, 0.5f,
+GLfloat translationMatrix[] = {    1.0f, 0.0f, 0.0f, 0.5f,
 
                         0.0f, 1.0f, 0.0f, 0.0f,
 
@@ -89,7 +89,7 @@ void init(void)
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Color"));
 
-    glUniformMatrix4fv(glGetUniformLocation(program, "myMatrix"), 1, GL_TRUE, myMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(program, "translationMatrix"), 1, GL_TRUE, translationMatrix);
 	
 	// End of upload of geometry
 	printError("init arrays");
@@ -117,6 +117,17 @@ int main(int argc, char *argv[])
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display); 
 	init ();
+    glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
+}
+
+void OnTimer(int value)
+
+{
+
+    glutPostRedisplay();
+
+    glutTimerFunc(20, &OnTimer, value);
+
 }
