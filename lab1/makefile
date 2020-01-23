@@ -11,15 +11,14 @@ OSSUF =m
 UNAME=Mac
 endif
 
+OBJS = lab1-1 lab1-2 lab1-3
+
 all:
-	@$(MAKE) lab1-1
-	@$(MAKE) lab1-2
+	@$(MAKE) $(OBJS)
 
 % : %.c $(commondir)GL_utilities.c $(commondir)VectorUtils3.c $(commondir)loadobj.c $(commondir)LoadTGA.c $(commondir)$(UNAME)/MicroGlut.$(OSSUF)
 	gcc -Wall -o $* -I$(commondir) -I../common/$(UNAME) -DGL_GLEXT_PROTOTYPES $*.c $(commondir)GL_utilities.c $(commondir)loadobj.c $(commondir)VectorUtils3.c $(commondir)LoadTGA.c $(commondir)$(UNAME)/MicroGlut.$(OSSUF) $(OSFLAGS)
 
-
 clean :
-	@rm lab1-1
-	@rm lab1-2
+	rm $(OBJS)
 	@echo So clean !
