@@ -1,3 +1,4 @@
+#define GL_SILENCE_DEPRECATION
 #ifndef _MICROGLUT_
 #define _MICROGLUT_
 

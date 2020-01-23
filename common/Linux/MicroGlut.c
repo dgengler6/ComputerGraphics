@@ -763,7 +763,7 @@ char glutKeyIsDown(unsigned char c)
 	return gKeymap[(unsigned int)c];
 }
 
-// Added by the Risinger/RŒberg/Wikstršm project! But... gButtonPressed
+// Added by the Risinger/Rï¿½berg/Wikstrï¿½m project! But... gButtonPressed
 // was already here! Did I miss something?
 char glutMouseIsDown(unsigned char c)
 {

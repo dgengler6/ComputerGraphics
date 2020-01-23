@@ -62,7 +62,8 @@
 
 // Incompatibility in mouse coordinates; global or local?
 // Should be local! (I think they are now!)
-
+#define GL_SILENCE_DEPRECATION
+#define COCOA_SILENCE_DEPRECATION
 #import <Cocoa/Cocoa.h>
 #include <OpenGL/gl.h>
 #include <stdlib.h>

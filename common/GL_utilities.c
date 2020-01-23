@@ -14,6 +14,7 @@
 // 160302: Uses fopen_s on Windows, as suggested by Jesper Post. Should reduce warnings a bit.
 
 //#define GL3_PROTOTYPES
+#define GL_SILENCE_DEPRECATION
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
