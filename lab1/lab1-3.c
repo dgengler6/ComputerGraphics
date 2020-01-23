@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display); 
 	init ();
-    glutTimerFunc(20, &OnTimer, 0);
+    //glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
 }
