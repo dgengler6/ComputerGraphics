@@ -109,7 +109,7 @@ void display(void)
 
     GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
-    mat4 rotx, rotz, roty, trans, s, total;
+    mat4 rotx, roty2, rotz, roty, trans, s, total;
 
 	rotz = Rz(t/1000 * sin(t/1000) + 180);
     rotx = Rx(t/1000);
@@ -117,9 +117,11 @@ void display(void)
     trans = T(sin(t/1000),0,0);
     s = S(sin(t/700) + 1, sin(t/600) + 1, sin(t/500) + 1);
 	total = Mult(Mult(Mult(Mult(rotx, rotz),roty),trans),s);
+
+    roty2 = Ry(t/1000);
     
 
-	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, total.m);
+	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, roty2.m);
 	
  
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
