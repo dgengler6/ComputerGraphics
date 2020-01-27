@@ -11,7 +11,7 @@ uniform float time;
 
 void main(void)
 {
-  float x = in_Position.x +  sin(time/400 * in_Position.y)/10;
+  float x = in_Position.x + sin(time/200 + in_Position.y*4)/5;
 	gl_Position = matrix * vec4(x, in_Position.y, in_Position.z, 1.0);
   ex_normal =  matrix * vec4(in_Normal,1.0);
 }
