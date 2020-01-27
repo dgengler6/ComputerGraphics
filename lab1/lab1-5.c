@@ -27,18 +27,53 @@
 
 GLfloat vertices[] =
 {
-	0.7f,-0.2f,0.0f,
-	-0.0f,0.7f,0.0f,
-	-0.7f,-0.2f,0.0f,
-	0.5f,-0.5f,0.0f
+	0.5f,0.5f,0.0f,
+	-0.5f,0.5f,0.0f,
+	0.5f,-0.5f,0.0f,
+
+    -0.5f,-0.5f,0.0f,
+	0.5f,-0.5f,0.0f,
+    -0.5f,0.5f,0.0f,
+
+    -0.5f,0.5f,0.0f,
+    0.5f,0.5f,0.0f,
+    0.0f,0.0f,0.5f,
+
+    -0.5f,-0.5f,0.0f,
+    -0.5f,0.5f,0.0f,
+    0.0f,0.0f,0.5f,
+    
+    0.5f,-0.5f,0.0f,
+    -0.5f,-0.5f,0.0f,
+    0.0f,0.0f,0.5f,
+
+    0.5f,0.5f,0.0f,
+    0.5f,-0.5f,0.0f,
+    0.0f,0.0f,0.5f
+    
+
 };
 
 GLfloat colors[] =
 {
-	0.2f,0.5f,0.0f,
-	0.1f,0.0f,0.1f,
-	0.3f,0.5f,1.0f,
-	0.0f,0.0f,1.0f
+	1.0f,0.0f,0.0f,
+	1.0f,0.0f,0.0f,
+	1.f,0.0f,0.0f,
+	1.0f,0.0f,0.0f,
+    1.0f,0.0f,0.0f,
+    1.0f,0.0f,0.0f,
+    0.0f,0.0f,0.0f,
+    0.0f,0.0f,0.0f,
+    0.0f,0.0f,0.0f,
+    1.0f,1.0f,0.0f,
+    1.0f,1.0f,0.0f,
+    1.0f,1.0f,0.0f,
+    0.0f,1.0f,0.0f,
+    0.0f,1.0f,0.0f,
+    0.0f,1.0f,0.0f,
+    1.0f,1.0f,1.0f,
+    1.0f,1.0f,1.0f,
+    1.0f,1.0f,1.0f
 };
 
 GLfloat translationMatrix[] = {    1.0f, 0.0f, 0.0f, 0.5f,
@@ -68,12 +103,13 @@ void init(void)
 
 	// GL inits
 	glClearColor(1,0.2,1,0);
+    
 	glDisable(GL_DEPTH_TEST);
 	printError("GL inits");
 
 	// Load and compile shader
 
-	program = loadShaders("lab1-3.vert","lab1-3.frag");
+	program = loadShaders("lab1-5.vert","lab1-5.frag");
 	printError("init shader");
 	
 	// Upload geometry to the GPU:
@@ -91,12 +127,12 @@ void init(void)
 	
 	// VBO for vertex data
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjID);
-	glBufferData(GL_ARRAY_BUFFER, 12*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 3*18*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Position"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Position"));
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjIDColor);
-	glBufferData(GL_ARRAY_BUFFER, 9*sizeof(GLfloat), colors, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 3*18*sizeof(GLfloat), colors, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Color"));
 
@@ -105,7 +141,7 @@ void init(void)
 	//glVertexAttribPointer(glGetAttribLocation(program, "in_rotationMatrix"), 4, GL_FLOAT, GL_FALSE, 0, 0); 
 	//glEnableVertexAttribArray(glGetAttribLocation(program, "in_rotationMatrix"));
 
-    glUniformMatrix4fv(glGetUniformLocation(program, "translationMatrix"), 1, GL_TRUE, translationMatrix);
+    //glUniformMatrix4fv(glGetUniformLocation(program, "translationMatrix"), 1, GL_TRUE, translationMatrix);
 	
 	// End of upload of geometry
 	printError("init arrays");
@@ -120,8 +156,6 @@ void display(void)
 	
 	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
-	t=t/1000;
-
 	GLfloat rotationMatrix[] = {   cos(t), -sin(t), 0.0f, 0.0f,
 
 						sin(t), cos(t), 0.0f, 0.0f,
@@ -130,11 +164,24 @@ void display(void)
 
 						0.0f, 0.0f, 0.0f, 1.0f };
 
-	glUniformMatrix4fv(glGetUniformLocation(program, "rotationMatrix"), 1, GL_TRUE, rotationMatrix);
+    mat4 rotx, rotz, roty, trans, total;
+
+	rotz = Rz(t/1000);
+    rotx = Rx(t/500);
+    roty = Ry(t/1000);
+	total = Mult(Mult(rotx, rotz),roty);
+    
+
+	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, total.m);
 	
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(vertexArrayObjID);	// Select VAO
-	glDrawArrays(GL_TRIANGLES, 0,3);	// draw object
+	glDrawArrays(GL_TRIANGLES, 0,3);
+    glDrawArrays(GL_TRIANGLES, 3,3);
+    glDrawArrays(GL_TRIANGLES, 6,3);
+    glDrawArrays(GL_TRIANGLES, 9,3);
+    glDrawArrays(GL_TRIANGLES, 12,3);
+    glDrawArrays(GL_TRIANGLES, 15,3);	// draw object
 	printError("display");
 	
 	
@@ -154,13 +201,14 @@ void OnTimer(int value)
 int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
-
-	glutTimerFunc(20, &OnTimer, 0);
 	glutInitContextVersion(3, 2);
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display); 
-	init ();
-    
+    init ();
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
 }
