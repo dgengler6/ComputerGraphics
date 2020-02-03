@@ -80,7 +80,7 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab2-3.vert","lab2-3.frag");
+	program = loadShaders("lab2-4.vert","lab2-4.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
@@ -165,9 +165,9 @@ void display(void)
 
     mat4 rot, trans, total;
 
-    trans = T(0, 0, -3);
+    trans = T(0, pow(t,1.2)/100000, -3);
 
-    rot = Ry(t/1000);
+    rot = Ry(t*t/1000000);
 
     total = Mult(  trans,rot);
 
