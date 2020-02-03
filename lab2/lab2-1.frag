@@ -23,13 +23,17 @@ void main(void)
 		//topcolor = c2;
 		//bottomcolor = c1;
 	//}
-
-	if(ex_TexCoord.y*2-1>sin(time/500)+0.35){
-		out_Color = shadowVec + red;
-	}else if (ex_TexCoord.y*2-1<sin(time/500)-0.35){
-		out_Color = shadowVec + green ;
+	out_Color = shadowVec;
+	float y = ex_TexCoord.y;
+	 y+= sin(ex_TexCoord.x*5 + time/10000)/20;
+	if(y*2-1>sin(time/500)+0.35 ){
+		 out_Color+= red;
+	}else if (y*2-1<sin(time/500)-0.35){
+		out_Color += green ;
 	}else{
-		out_Color = shadowVec + yellow ;
+		out_Color += yellow ;
 	}
+
+	
 
 }
