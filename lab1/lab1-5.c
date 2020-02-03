@@ -10,7 +10,7 @@
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
-	
+
 	// Linking hint for Lightweight IDE
 	// uses framework Cocoa
 #endif
@@ -42,7 +42,7 @@ GLfloat vertices[] =
     -0.5f,-0.5f,0.0f,
     -0.5f,0.5f,0.0f,
     0.0f,0.0f,0.5f,
-    
+
     0.5f,-0.5f,0.0f,
     -0.5f,-0.5f,0.0f,
     0.0f,0.0f,0.5f,
@@ -50,7 +50,7 @@ GLfloat vertices[] =
     0.5f,0.5f,0.0f,
     0.5f,-0.5f,0.0f,
     0.0f,0.0f,0.5f
-    
+
 
 };
 
@@ -97,13 +97,13 @@ void init(void)
 	unsigned int vertexBufferObjID;
 	unsigned int vertexBufferObjIDColor;
 	unsigned int vertexBufferObjIDrotationMatrix;
-	
+
 
 	dumpInfo();
 
 	// GL inits
 	glClearColor(1,0.2,1,0);
-    
+
 	glDisable(GL_DEPTH_TEST);
 	printError("GL inits");
 
@@ -111,9 +111,9 @@ void init(void)
 
 	program = loadShaders("lab1-5.vert","lab1-5.frag");
 	printError("init shader");
-	
+
 	// Upload geometry to the GPU:
-	
+
 	// Allocate and activate Vertex Array Object
 	glGenVertexArrays(1, &vertexArrayObjID);
 	glBindVertexArray(vertexArrayObjID);
@@ -123,26 +123,26 @@ void init(void)
 
 	// Allocate Vertex Buffer Objects
 	glGenBuffers(1, &vertexBufferObjIDColor);
-	
-	
+
+
 	// VBO for vertex data
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjID);
 	glBufferData(GL_ARRAY_BUFFER, 3*18*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(glGetAttribLocation(program, "in_Position"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
+	glVertexAttribPointer(glGetAttribLocation(program, "in_Position"), 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Position"));
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjIDColor);
 	glBufferData(GL_ARRAY_BUFFER, 3*18*sizeof(GLfloat), colors, GL_STATIC_DRAW);
-	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0); 
+	glVertexAttribPointer(glGetAttribLocation(program, "in_Color"), 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(glGetAttribLocation(program, "in_Color"));
 
 	//glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjIDrotationMatrix);
 	//glBufferData(GL_ARRAY_BUFFER, 16*sizeof(GLfloat), rotationMatrix, GL_STATIC_DRAW);
-	//glVertexAttribPointer(glGetAttribLocation(program, "in_rotationMatrix"), 4, GL_FLOAT, GL_FALSE, 0, 0); 
+	//glVertexAttribPointer(glGetAttribLocation(program, "in_rotationMatrix"), 4, GL_FLOAT, GL_FALSE, 0, 0);
 	//glEnableVertexAttribArray(glGetAttribLocation(program, "in_rotationMatrix"));
 
     //glUniformMatrix4fv(glGetUniformLocation(program, "translationMatrix"), 1, GL_TRUE, translationMatrix);
-	
+
 	// End of upload of geometry
 	printError("init arrays");
 }
@@ -153,7 +153,7 @@ void display(void)
 	printError("pre display");
 	//glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, rotationMatrix);
 	// clear the screen
-	
+
 	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
 	GLfloat rotationMatrix[] = {   cos(t), -sin(t), 0.0f, 0.0f,
@@ -170,10 +170,10 @@ void display(void)
     rotx = Rx(t/500);
     roty = Ry(t/1000);
 	total = Mult(Mult(rotx, rotz),roty);
-    
+
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, total.m);
-	
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(vertexArrayObjID);	// Select VAO
 	glDrawArrays(GL_TRIANGLES, 0,3);
@@ -183,8 +183,8 @@ void display(void)
     glDrawArrays(GL_TRIANGLES, 12,3);
     glDrawArrays(GL_TRIANGLES, 15,3);	// draw object
 	printError("display");
-	
-	
+
+
 	glutSwapBuffers();
 }
 
@@ -202,17 +202,13 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
 	glutCreateWindow ("GL3 white triangle example");
-	glutDisplayFunc(display); 
+	glutDisplayFunc(display);
     init ();
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
 }
-
-
-
-

@@ -28,6 +28,7 @@
 	GLuint program;
 
 Model *m;
+GLfloat t;
 
 
 // vertex array object
@@ -55,7 +56,7 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab1-6.vert","lab1-6.frag");
+	program = loadShaders("lab1-bonus2.vert","lab1-bonus2.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
@@ -107,22 +108,13 @@ void display(void)
 {
 	printError("pre display");
 
-    GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+    t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
-    mat4 rotx, roty2, rotz, roty, trans, s, total;
+    mat4 roty2;
 
-	rotz = Rz(t/1000 * sin(t/1000) + 180);
-    rotx = Rx(t/1000);
-    roty = Ry(t/1000-90);
-    trans = T(sin(t/1000),0,0);
-    s = S(sin(t/700) + 1, sin(t/600) + 1, sin(t/500) + 1);
-	total = Mult(Mult(Mult(Mult(rotx, rotz),roty),trans),s);
-
-    roty2 = Ry(t/1000);
-
+    roty2 = Ry(t/2000);
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, roty2.m);
-
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(bunnyVertexArrayObjID);    // Select VAO
@@ -148,7 +140,7 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display);
     init ();

@@ -148,10 +148,10 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display);
     init ();
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glutTimerFunc(20, &OnTimer, 0);
