@@ -1,5 +1,6 @@
 #version 150
 
+//varying 
 in  vec3 in_Position;
 in vec3 in_Normal;
 in vec2 in_TexCoord;
@@ -8,6 +9,7 @@ out vec2 ex_TexCoord;
 
 
 uniform mat4 matrix;
+
 
 void main(void)
 {	

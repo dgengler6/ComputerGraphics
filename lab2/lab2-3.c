@@ -25,9 +25,31 @@
 // Data would normally be read from files
 
 // Reference to shader program
-	GLuint program;
+GLuint program;
 
+// Model and Textures 
 Model *m;
+GLuint texture;
+
+#define near 1.0
+
+#define far 30.0
+
+#define right 0.5
+
+#define left -0.5
+
+#define top 0.5
+
+#define bottom -0.5
+
+GLfloat projectionMatrix[] = {    2.0f*near/(right-left), 0.0f, (right+left)/(right-left), 0.0f,
+
+                                            0.0f, 2.0f*near/(top-bottom), (top+bottom)/(top-bottom), 0.0f,
+
+                                            0.0f, 0.0f, -(far + near)/(far - near), -2*far*near/(far - near),
+
+                                            0.0f, 0.0f, -1.0f, 0.0f };
 
 
 // vertex array object
@@ -42,10 +64,11 @@ void init(void)
     unsigned int bunnyIndexBufferObjID;
 
     unsigned int bunnyNormalBufferObjID;
+    
+    unsigned int projectionMatrixBufferObjID;
 
     unsigned int bunnyTexCoordBufferObjID;
-
-
+    
 
 	dumpInfo();
 
@@ -57,20 +80,29 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab2-1.vert","lab2-1.frag");
+	program = loadShaders("lab2-3.vert","lab2-3.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
     m=LoadModel("bunnyplus.obj");
+
+    // Load and bind the texture 
+    LoadTGATextureSimple("quack.tga", &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(glGetUniformLocation(program, "texUnit"), 0);
+    glActiveTexture(GL_TEXTURE0);
+
 	// Allocate and activate Vertex Array Object
     glGenVertexArrays(1, &bunnyVertexArrayObjID);
     glGenBuffers(1, &bunnyVertexBufferObjID);
     glGenBuffers(1, &bunnyIndexBufferObjID);
     glGenBuffers(1, &bunnyNormalBufferObjID);
+    glGenBuffers(1, &bunnyTexCoordBufferObjID);  
+    glGenBuffers(1, &projectionMatrixBufferObjID);
 
     glBindVertexArray(bunnyVertexArrayObjID);
 
-    glGenBuffers(1, &bunnyTexCoordBufferObjID);    
+      
 
 
 
@@ -116,6 +148,10 @@ void init(void)
 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->numIndices*sizeof(GLuint), m->indexArray, GL_STATIC_DRAW);
 
+    // VBO for projection matrix
+
+    
+
 	// End of upload of geometry
 	printError("init arrays");
 }
@@ -127,13 +163,17 @@ void display(void)
 
     GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
-    mat4 roty;
+    mat4 rot, trans, total;
 
-    roty = Ry(t/1000);
+    trans = T(0, pow(t,1.2)/100000, -3);
 
+    rot = Ry(t*t/1000000);
 
-	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, roty.m);
+    total = Mult(  trans,rot);
+
+	glUniformMatrix4fv(glGetUniformLocation(program, "matrix"), 1, GL_TRUE, total.m);
     glUniform1f(glGetUniformLocation(program, "time"), t);
+    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_TRUE, projectionMatrix);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(bunnyVertexArrayObjID);    // Select VAO

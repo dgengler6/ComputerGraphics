@@ -4,6 +4,7 @@ in vec4 ex_normal;
 in vec2 ex_TexCoord;
 out vec4 out_Color;
 uniform float time;
+uniform sampler2D texUnit;
 
 void main(void)
 {	
@@ -16,6 +17,10 @@ void main(void)
 	vec4 green = vec4(0.0,1.0,0.0,1.0);
 	vec4 yellow = vec4(1.0,1.0,0.0,1.0);
 
+    out_Color = texture(texUnit, ex_TexCoord*2);
+	
+    
+    /*
 	//if(sin(time/100)>0){
 		//topcolor = c1;
 		//bottomcolor = c2;
@@ -30,6 +35,5 @@ void main(void)
 		out_Color = shadowVec + green ;
 	}else{
 		out_Color = shadowVec + yellow ;
-	}
-	
+        }*/
 }

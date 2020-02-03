@@ -25,9 +25,11 @@
 // Data would normally be read from files
 
 // Reference to shader program
-	GLuint program;
+GLuint program;
 
 Model *m;
+GLuint texture;
+
 
 
 // vertex array object
@@ -45,8 +47,6 @@ void init(void)
 
     unsigned int bunnyTexCoordBufferObjID;
 
-
-
 	dumpInfo();
 
 	// GL inits
@@ -57,11 +57,18 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab2-1.vert","lab2-1.frag");
+	program = loadShaders("lab2-2.vert","lab2-2.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
     m=LoadModel("bunnyplus.obj");
+
+    // Load and bind the texture 
+    LoadTGATextureSimple("quack.tga", &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(glGetUniformLocation(program, "texUnit"), 0);
+    glActiveTexture(GL_TEXTURE0);
+
 	// Allocate and activate Vertex Array Object
     glGenVertexArrays(1, &bunnyVertexArrayObjID);
     glGenBuffers(1, &bunnyVertexBufferObjID);
