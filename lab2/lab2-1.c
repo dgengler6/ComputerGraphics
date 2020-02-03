@@ -25,27 +25,22 @@
 // Data would normally be read from files
 
 // Reference to shader program
-	GLuint program;
+GLuint program;
 
 Model *m;
 
 
 // vertex array object
-    unsigned int bunnyVertexArrayObjID;
+  unsigned int bunnyVertexArrayObjID;
 
 void init(void)
 {
 	// vertex buffer object, used for uploading the geometry
 
     unsigned int bunnyVertexBufferObjID;
-
     unsigned int bunnyIndexBufferObjID;
-
     unsigned int bunnyNormalBufferObjID;
-
     unsigned int bunnyTexCoordBufferObjID;
-
-
 
 	dumpInfo();
 

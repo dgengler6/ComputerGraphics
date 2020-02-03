@@ -8,12 +8,12 @@ out vec4 out_Color;
 void main(void)
 {
 	vec3 n = vec3(ex_normal.x, ex_normal.y, ex_normal.z);
-	float k_d = 0.8;
+	float k_d = 1;
 	float k_spec = 0.5;
 
 	float i_a = 0.2;
 	vec3 light_1 = normalize(vec3(0,0.4,-1));
-	float i_1 = 3;
+	float i_1 = 1;
 
 	float alpha = 50;
 	float i_amb = k_d * i_a;

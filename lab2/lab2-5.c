@@ -22,13 +22,11 @@
 #include "LoadTGA.h"
 
 
-
 // Globals
 // Data would normally be read from files
 
 // Reference to shader program
 GLuint program;
-
 
 // Model and Textures
 Model *m;
@@ -53,12 +51,10 @@ void init(void)
 	// vertex buffer object, used for uploading the geometry
 
     unsigned int bunnyVertexBufferObjID;
-
     unsigned int bunnyIndexBufferObjID;
     unsigned int bunnyNormalBufferObjID;
     unsigned int projectionMatrixBufferObjID;
     unsigned int bunnyTexCoordBufferObjID;
-
 
 
 	dumpInfo();
@@ -71,22 +67,20 @@ void init(void)
 
 	// Load and compile shader
 
-	program = loadShaders("lab2-4.vert","lab2-4.frag");
+	program = loadShaders("lab2-5.vert","lab2-5.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
     m=LoadModel("bunnyplus.obj");
 
 
-
 		projectionMatrix = frustum(left, right, bottom, top, near, far);
 
-		vec3 p = SetVector(0,-2,-2);
+		vec3 p = SetVector(0,0,-1);
 		vec3 l = SetVector(0,0,-3);
 		vec3 v = SetVector(0,1,0);
 		camMatrix = lookAtv(p, l, v);
     // Load and bind the texture
-
     LoadTGATextureSimple("quack.tga", &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(glGetUniformLocation(program, "texUnit"), 0);
@@ -97,12 +91,10 @@ void init(void)
     glGenBuffers(1, &bunnyVertexBufferObjID);
     glGenBuffers(1, &bunnyIndexBufferObjID);
     glGenBuffers(1, &bunnyNormalBufferObjID);
-
     glGenBuffers(1, &bunnyTexCoordBufferObjID);
     glGenBuffers(1, &projectionMatrixBufferObjID);
 
     glBindVertexArray(bunnyVertexArrayObjID);
-
 
     if (m->texCoordArray != NULL)
     {
@@ -128,6 +120,7 @@ void init(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->numIndices*sizeof(GLuint), m->indexArray, GL_STATIC_DRAW);
 
 
+
 	// End of upload of geometry
 	printError("init arrays");
 }
@@ -141,11 +134,10 @@ void display(void)
 
     mat4 rot, trans, total;
 
-    trans = T(0, pow(t,1.2)/100000, -3);
-
+    trans = T(0, 0, -3);
 
     //rot = Ry(t*t/1000000);
-		rot = Ry(t*t/1000000);
+		rot = Ry(t/2000);
 		mat4 projectedCam = Mult(projectionMatrix, camMatrix);
     total = Mult(trans,rot);
 		mat4 packed = Mult(projectedCam, total);
@@ -156,7 +148,6 @@ void display(void)
 		glUniformMatrix4fv(glGetUniformLocation(program, "camera"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_TRUE, projectionMatrix.m);
 		glUniformMatrix4fv(glGetUniformLocation(program, "vingthuit"), 1, GL_TRUE, packed.m);
-
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindVertexArray(bunnyVertexArrayObjID);    // Select VAO
@@ -182,7 +173,6 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
-
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow ("GL3 white triangle example");
 	glutDisplayFunc(display);
