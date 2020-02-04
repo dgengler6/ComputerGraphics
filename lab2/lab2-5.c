@@ -1,12 +1,3 @@
-// Lab 1-1.
-// This is the same as the first simple example in the course book,
-// but with a few error checks.
-// Remember to copy your file to a new on appropriate places during the lab so you keep old results.
-// Note that the files "lab1-1.frag", "lab1-1.vert" are required.
-
-// Should work as is on Linux and Mac. MS Windows needs GLEW or glee.
-// See separate Visual Studio version of my demos.
-
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
@@ -71,7 +62,7 @@ void init(void)
 	printError("init shader");
 
 	// Upload geometry to the GPU:
-    m=LoadModel("bunnyplus.obj");
+    m=LoadModel("cubeplus.obj");
 
 
 		projectionMatrix = frustum(left, right, bottom, top, near, far);
@@ -81,7 +72,7 @@ void init(void)
 		vec3 v = SetVector(0,1,0);
 		camMatrix = lookAtv(p, l, v);
     // Load and bind the texture
-    LoadTGATextureSimple("quack.tga", &texture);
+    LoadTGATextureSimple("dam.tga", &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(glGetUniformLocation(program, "texUnit"), 0);
     glActiveTexture(GL_TEXTURE0);
