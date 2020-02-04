@@ -14,9 +14,7 @@ uniform mat4 vingthuit;
 
 void main(void)
 {
-
 	gl_Position = vingthuit * vec4(in_Position, 1.0);
   ex_Normal = mat3(vingthuit) * in_Normal;
   ex_TexCoord = in_TexCoord;
 }
-//translationMatrix * rotationMatrix * matrix*
