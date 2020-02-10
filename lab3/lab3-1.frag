@@ -2,16 +2,13 @@
 
 in vec3 ex_Normal;
 in vec2 ex_TexCoord;
-in float ex_Light;
 out vec4 out_Color;
-uniform float time;
 uniform sampler2D texUnit;
 
 void main(void)
 {
 	out_Color = texture(texUnit, ex_TexCoord*2);
 
-	if (int(time/1000) %2 == 1) {
 		vec3 n = ex_Normal;
 		float k_d = 0.5;
 		float k_spec = 0.5;
@@ -28,12 +25,5 @@ void main(void)
 
 		float i_total = i_amb + i_diff + i_spec;
 		out_Color *= i_total;
-	} else {
-		out_Color *= ex_Light;
-	}
-	//float shadow = dot(normalize(ex_Normal),vec4(0.0,0.0,-1.0,0.0));
-	//vec4 shadowVec = vec4(shadow); // inColor;
-
-
 
 }
