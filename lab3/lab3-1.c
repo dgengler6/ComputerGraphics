@@ -53,6 +53,15 @@ GLuint texture;
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, MODEL->numIndices*sizeof(GLuint), MODEL->indexArray, GL_STATIC_DRAW);
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
+void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result);
+void world_to_view_transform(mat4 * projectedCam, mat4 * result);
+void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result);
+void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result);
+mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
+			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
+			GLfloat p8, GLfloat p9, GLfloat p10, GLfloat p11,
+			GLfloat p12, GLfloat p13, GLfloat p14, GLfloat p15
+		);
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_object);
@@ -60,6 +69,10 @@ void buffer_setup(char * in_shader, unsigned int buffer_object, const void * arr
 	glVertexAttribPointer(glGetAttribLocation(prog, in_shader), dim, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(glGetAttribLocation(prog, in_shader));
 }
+
+
+
+
 
 mat4 projectionMatrix;
 
@@ -112,24 +125,18 @@ void init(void)
 	printError("init arrays");
 }
 
-
 void display(void)
 {
 	printError("pre display");
 
     GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 
-    mat4 rot, rot1, trans, total, total1;
-
-    trans = T(0, 0, -3);
-    //rot = Ry(t*t/1000000);
-		rot = Ry(t/1000);
-		rot1 = Ry(0);
 		mat4 projectedCam = Mult(projectionMatrix, camMatrix);
-    total = Mult(trans,rot);
-		total1 = Mult(trans,rot1);
-		mat4 packed = Mult(projectedCam, total);
-		mat4 packed1 = Mult(projectedCam, total1);
+
+	mat4 packed, packed1;
+
+	packed_transform(SetVector(0,0,-2), SetVector(0,0,t/1000), SetVector(1,1,1), &projectedCam, &packed);
+	packed_transform(SetVector(0,0,-2), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packed1);
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
@@ -175,4 +182,61 @@ int main(int argc, char *argv[])
     glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
+}
+
+void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result){
+	mat4 rot;
+	euler_transform(r.x, r.y, r.z, &rot);
+	* result = Mult(rot, S(s.x,s.y,s.z));
+	* result = Mult(T(t.x, t.y, t.z),*result);
+}
+void world_to_view_transform(mat4 * projectedCam, mat4 * result){
+	* result = Mult(* projectedCam, * result);
+}
+
+mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
+			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
+			GLfloat p8, GLfloat p9, GLfloat p10, GLfloat p11,
+			GLfloat p12, GLfloat p13, GLfloat p14, GLfloat p15
+			)
+{
+	mat4 m;
+	m.m[0] = p0;
+	m.m[1] = p1;
+	m.m[2] = p2;
+	m.m[3] = p3;
+	m.m[4] = p4;
+	m.m[5] = p5;
+	m.m[6] = p6;
+	m.m[7] = p7;
+	m.m[8] = p8;
+	m.m[9] = p9;
+	m.m[10] = p10;
+	m.m[11] = p11;
+	m.m[12] = p12;
+	m.m[13] = p13;
+	m.m[14] = p14;
+	m.m[15] = p15;
+	return m;
+}
+
+void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result) {
+	model_to_world_transform(t, r, s, result);
+	world_to_view_transform(projectedCam, result);
+}
+
+void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result) {
+	GLfloat c1 = cos(z);
+	GLfloat s1 = sin(z);
+	GLfloat c2 = cos(y);
+	GLfloat s2 = sin(y);
+	GLfloat c3 = cos(x);
+	GLfloat s3 = sin(x);
+
+	mat4 rot = Mat4(c2*c3, -c2*s3, s2, 0,
+									c1*s3 + c3*s1*s2, c1*c3 - s1*s2*s3, -c2*s1, 0,
+									s1*s3 - c1*c3*s2, c3*s1 + c1*s2*s3, c1*c2 , 0,
+									0, 0 , 0, 1
+									 );
+  * result = rot;
 }
