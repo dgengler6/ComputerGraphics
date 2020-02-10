@@ -12,15 +12,19 @@
 #include "loadobj.h"
 #include "LoadTGA.h"
 
+// FUnction headers
+
+void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
+mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot);
 
 // Globals
 // Data would normally be read from files
 
 // Reference to shader program
-GLuint pr_wb, pr_wr, pr_ww, pr_b;
+GLuint pr_wb, pr_wr, pr_ww, pr_b1, pr_b2, pr_b3, pr_b4;
 
 // Model and Textures
-Model * wb, * wr, * ww, * b;
+Model * wb, * wr, * ww, * b, * b1, * b2, * b3 , * b4;
 GLuint texture;
 
 #define near 1.0
@@ -72,14 +76,12 @@ void buffer_setup(char * in_shader, unsigned int buffer_object, const void * arr
 
 
 
-
-
 mat4 projectionMatrix;
 
 mat4 camMatrix;
 
 // vertex array object
-  unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, BVertexArrayObjID;
+  unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, B1VertexArrayObjID,B2VertexArrayObjID,B3VertexArrayObjID,B4VertexArrayObjID;
 
 void init(void)
 {
@@ -95,24 +97,30 @@ void init(void)
 	pr_wb = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_wr = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_ww = loadShaders("lab3-1.vert","lab3-1.frag");
-	pr_b = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_b1 = loadShaders("lab3-1.vert","lab3-1.frag");
+  pr_b2 = loadShaders("lab3-1.vert","lab3-1.frag");
+  pr_b3 = loadShaders("lab3-1.vert","lab3-1.frag");
+  pr_b4 = loadShaders("lab3-1.vert","lab3-1.frag");
 	printError("init shader");
 
 	// Upload geometry to the GPU:
 	buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
 	buffer_full_setup(wr, WR, "windmill/windmill-roof.obj", pr_wr);
 	buffer_full_setup(ww, WW, "windmill/windmill-walls.obj", pr_ww);
-	buffer_full_setup(b, B, "windmill/blade.obj", pr_b);
+	buffer_full_setup(b1, B1, "windmill/blade.obj", pr_b1);
+  buffer_full_setup(b2, B2, "windmill/blade.obj", pr_b2);
+  buffer_full_setup(b3, B3, "windmill/blade.obj", pr_b3);
+  buffer_full_setup(b4, B4, "windmill/blade.obj", pr_b4);
 
 		projectionMatrix = frustum(left, right, bottom, top, near, far);
 
-		vec3 p = SetVector(0,0,10);
-		vec3 l = SetVector(0,0,-3);
-		vec3 v = SetVector(0,1,0);
+		vec3 p = SetVector(15,10,15); // Camera position
+		vec3 l = SetVector(0,5,0); // Look-at point
+		vec3 v = SetVector(0,1,0); //Up vector
 		camMatrix = lookAtv(p, l, v);
 
     // Load and bind the texture
-    LoadTGATextureSimple("SkyBox512.tga", &texture);
+    LoadTGATextureSimple("dam.tga", &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(glGetUniformLocation(pr_wb, "texUnit"), 0);
     glActiveTexture(GL_TEXTURE0);
@@ -130,27 +138,66 @@ void display(void)
 	printError("pre display");
 
     GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+    mat4 t_rot = Rx(t/1000 );
 
 		mat4 projectedCam = Mult(projectionMatrix, camMatrix);
+    //balcony
+    mat4 trans = T(0, 0, 0);
+    mat4 rot = Ry(-M_PI_2);
+    mat4 total = Mult(trans,rot);
+    mat4 packed = Mult(projectedCam, total);
+    // roof
+    mat4 trans1 = T(0, 0.5, 0);
+    mat4 rot1 = Ry(0);
+    mat4 total1 = Mult(trans1,rot1);
+		mat4 packed1 = Mult(projectedCam, total1);
+    // walls
+    mat4 trans2 = T(0, 0, 0);
+    mat4 rot2 = Ry(M_PI);
+    mat4 total2 = Mult(trans2,rot2);
+    mat4 packed2 = Mult(projectedCam, total2);
+		// blade
 
-	mat4 packed, packed1;
 
-	packed_transform(SetVector(0,0,-2), SetVector(0,0,t/1000), SetVector(1,1,1), &projectedCam, &packed);
-	packed_transform(SetVector(0,0,-2), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packed1);
+
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
 	glBindVertexArray(WBVertexArrayObjID);    // Select VAO
 	glDrawElements(GL_TRIANGLES, wb->numIndices, GL_UNSIGNED_INT, 0L);
-	glUniformMatrix4fv(glGetUniformLocation(pr_wr, "pack_mat"), 1, GL_TRUE, packed.m);
+
+  glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_wr, "pack_mat"), 1, GL_TRUE, packed1.m);
 	glBindVertexArray(WRVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, wr->numIndices, GL_UNSIGNED_INT, 0L);
-	glUniformMatrix4fv(glGetUniformLocation(pr_ww, "pack_mat"), 1, GL_TRUE, packed.m);
+
+  glUniform4f(glGetUniformLocation(pr_ww,"plain_color"),1.0f,1.0f,1.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_ww, "pack_mat"), 1, GL_TRUE, packed2.m);
 	glBindVertexArray(WWVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, ww->numIndices, GL_UNSIGNED_INT, 0L);
-	glUniformMatrix4fv(glGetUniformLocation(pr_b, "pack_mat"), 1, GL_TRUE, packed1.m);
-	glBindVertexArray(BVertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, b->numIndices, GL_UNSIGNED_INT, 0L);
+
+  glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_b1, "pack_mat"), 1, GL_TRUE, bladeMatrix(0,projectedCam,t_rot).m);
+	glBindVertexArray(B1VertexArrayObjID);
+	glDrawElements(GL_TRIANGLES, b1->numIndices, GL_UNSIGNED_INT, 0L);
+
+  glUniform4f(glGetUniformLocation(pr_b2,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+  glUniformMatrix4fv(glGetUniformLocation(pr_b2, "pack_mat"), 1, GL_TRUE, bladeMatrix(1,projectedCam,t_rot).m);
+	glBindVertexArray(B2VertexArrayObjID);
+	glDrawElements(GL_TRIANGLES, b2->numIndices, GL_UNSIGNED_INT, 0L);
+
+  glUniform4f(glGetUniformLocation(pr_b3,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+  glUniformMatrix4fv(glGetUniformLocation(pr_b3, "pack_mat"), 1, GL_TRUE, bladeMatrix(2,projectedCam,t_rot).m);
+	glBindVertexArray(B3VertexArrayObjID);
+	glDrawElements(GL_TRIANGLES, b3->numIndices, GL_UNSIGNED_INT, 0L);
+
+  glUniform4f(glGetUniformLocation(pr_b4,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+  glUniformMatrix4fv(glGetUniformLocation(pr_b4, "pack_mat"), 1, GL_TRUE, bladeMatrix(3,projectedCam,t_rot).m);
+	glBindVertexArray(B4VertexArrayObjID);
+	glDrawElements(GL_TRIANGLES, b4->numIndices, GL_UNSIGNED_INT, 0L);
+
 
 
 	printError("display");
@@ -158,6 +205,8 @@ void display(void)
 
 	glutSwapBuffers();
 }
+
+
 
 void OnTimer(int value)
 
@@ -174,7 +223,7 @@ int main(int argc, char *argv[])
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-	glutCreateWindow ("GL3 white triangle example");
+	glutCreateWindow ("Gotta Grind Dat Wheat !");
 	glutDisplayFunc(display);
     init ();
     glEnable(GL_DEPTH_TEST);
@@ -183,6 +232,7 @@ int main(int argc, char *argv[])
 	glutMainLoop();
 	return 0;
 }
+
 
 void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result){
 	mat4 rot;
@@ -239,4 +289,16 @@ void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result) {
 									0, 0 , 0, 1
 									 );
   * result = rot;
+
+
+
+mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot){
+  mat4 trans4 = T(0, 9.2, 4.8);
+  mat4 rot4 = Ry(M_PI_2);
+  mat4 total4 = Mult(trans4,rot4);
+  mat4 br4 = Mult(Rx(i*M_PI_2),time_rot) ;
+  total4= Mult(total4,br4);
+  mat4 packed4 = Mult(cam, total4);
+  return packed4;
+
 }
