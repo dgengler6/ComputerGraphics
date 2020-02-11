@@ -1,9 +1,19 @@
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
-
-	// Linking hint for Lightweight IDE
-	// uses framework Cocoa
+  #define RIGHTKEY 'd'
+  #define LEFTKEY 'q'
+  #define DOWNKEY 'a'
+  #define UPKEY 'e'
+  #define FORWARDKEY 'z'
+  #define BACKKEY 's'
+#else 
+  #define RIGHTKEY 'd'
+  #define LEFTKEY 'a'
+  #define DOWNKEY 'q'
+  #define UPKEY 'e'
+  #define FORWARDKEY 'w'
+  #define BACKKEY 's'
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
@@ -14,6 +24,7 @@
 #include <stdarg.h>
 
 // FUnction headers
+
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
 mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot);
@@ -284,40 +295,30 @@ void mouse_motion (int x, int y) {
 
 void input_update(void){
 
-	if (glutKeyIsDown('w'))
+	if (glutKeyIsDown(FORWARDKEY))
 		direction.z += 1;
 
-	if (glutKeyIsDown('s'))
+	if (glutKeyIsDown(BACKKEY))
 		direction.z -= 1;
 
-	if (glutKeyIsDown('a'))
+	if (glutKeyIsDown(LEFTKEY))
 		direction.x += 1;
 
-	if (glutKeyIsDown('d'))
+	if (glutKeyIsDown(RIGHTKEY))
 		direction.x -= 1;
 
-	if (glutKeyIsDown('e'))
+	if (glutKeyIsDown(UPKEY))
 		direction.y += 1;
 
-	if (glutKeyIsDown('q'))
+	if (glutKeyIsDown(DOWNKEY))
 		direction.y -= 1;
 
-	if (glutKeyIsDown((char) 14))
+	if (glutKeyIsDown('o'))
 		actual_speed *= 2;
 
-	if (glutKeyIsDown((char) 16))
+	if (glutKeyIsDown('p'))
 		actual_speed /= 2;
 
-	actual_speed = speed;
-
-	if (glutKeyIsDown((char) 62))
-		actual_speed *= 2;
-
-	if (glutKeyIsDown((char) 37) || glutKeyIsDown((char) 105))
-	 	actual_speed /= 2;
-
-	printVec3(p);
-	printf("%c\n", (char) 62);
 }
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
