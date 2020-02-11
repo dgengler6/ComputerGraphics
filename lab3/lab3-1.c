@@ -38,6 +38,9 @@ void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projected
 mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
 void createModel( Model* result, GLfloat* vArray ,int vASize, GLuint* iArray, int iASize );
 
+void draw_object(vec3 look, vec3 color, mat4 mat, unsigned int id, GLuint pr, Model * m);
+void draw_skybox(mat4 mat, unsigned int id, GLuint pr, Model * m);
+
 void input_update(void);
 void mouse_motion (int x, int y);
 void special_key_func(unsigned char key, int x, int y);
@@ -83,7 +86,6 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 		buffer_setup("in_Normal", NAME ## NormalBufferObjID, MODEL->normalArray, MODEL->numVertices, 3, PROGRAM); \
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NAME ## IndexBufferObjID); \
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, MODEL->numIndices*sizeof(GLuint), MODEL->indexArray, GL_STATIC_DRAW);
-
 
 		//Create the model based on user defined arrays
 		#define buffer_full_setup_homemade_boi_we_got_this(MODEL, NAME, VERTICES_ARRAY, V_SIZE, INDEXES_ARRAY, I_SIZE, PROGRAM) \
@@ -167,6 +169,10 @@ void init(void)
 
 	// GL inits
 	glClearColor(1,0.2,1,0);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	printError("GL inits");
 
 
@@ -181,6 +187,7 @@ void init(void)
 	pr_g = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_sb = loadShaders("lab3-1sb.vert","lab3-1sb.frag");
 
+	glUseProgram(pr_sb);
 
 	printError("init shader");
 
@@ -206,8 +213,7 @@ void init(void)
   LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
   glBindTexture(GL_TEXTURE_2D, sbTexture);
   glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
-  glActiveTexture(GL_TEXTURE0);
-
+  //glActiveTexture(GL_TEXTURE0);
 
 	printError("init arrays");
 }
@@ -215,7 +221,6 @@ void init(void)
 
 void display(void)
 {
-	//printf("%f, %f\n", mouse_x/(float)width, mouse_y/(float)height);
 	printError("pre display");
 
 	direction = SetVector(0,0,0);
@@ -228,126 +233,92 @@ void display(void)
 
 	//mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, 0); //(0.5f - mouse_y /(float)height) * M_PI
 	mat4 look_mat = Mult(Rx((0.5f - mouse_y /(float)height) * M_PI), Ry(- mouse_x * 2 * M_PI /(float) width));
+
 	vec3 look = MultVec3(look_mat, SetVector(0,0,1));
-	//printf("(%f,%f,%f)", look.x*180/M_PI, look.y*180/M_PI, look.z*180/M_PI);
+
 	direction = MultVec3(look_mat, direction);
 	p = VectorAdd(p, direction);
 	l = VectorAdd(p, look);
-	//camMatrix = mult_rep(false, 2, look_mat, T(p.x, p.y, p.z));
+
 	camMatrix = lookAtv(p, l, v);
 	mat4 projectedCam = Mult(projectionMatrix, camMatrix);
 
-
   // Matrix projections
-
 	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
 	mat4 t_rot = Rx(t/1000);
 
 	//balcony
 	mat4 packed;
 	packed_transform(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1), &projectedCam, &packed);
-
 	// roof
 	mat4 packed1;
 	packed_transform(SetVector(0,0.5,0), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packed1);
-
 	// walls
 	mat4 packed2;
 	packed_transform(SetVector(0,0,0), SetVector(0,M_PI,0), SetVector(1,1,1), &projectedCam, &packed2);
-
 	// ground
 	mat4 packedg;
 	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packedg);
-
 
   //UPLOAD UNIFORM TO SHADERS + DRAW
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// DRAW SKYBOX
-
-	glDisable(GL_DEPTH_TEST);
-
+	//---------------------------------------//
+	//             DRAW SKYBOX               //
+	//---------------------------------------//
+	glUseProgram(pr_sb);
 	mat4 camUntranslated = camMatrix;
+	{ //SKYBOX COMPUTATIONS
 	camUntranslated.m[3] = 0;
 	camUntranslated.m[7] = 0;
 	camUntranslated.m[11] = 0;
 	camUntranslated = Mult(projectionMatrix, camUntranslated);
-	mat4 packedsb;
-	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &camUntranslated, &packedsb);
-	//world_to_view_transform(&camUntranslated, &packedsb);
+	//mat4 packedsb;
+	//packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &camUntranslated, &packedsb);
+	}
+	draw_skybox(camUntranslated, SBVertexArrayObjID, pr_sb, sb);
 
-	glUniformMatrix4fv(glGetUniformLocation(pr_sb, "pack_mat"), 1, GL_TRUE, packedsb.m);
-	glBindVertexArray(SBVertexArrayObjID);    // Select VAO
-	glDrawElements(GL_TRIANGLES, sb->numIndices, GL_UNSIGNED_INT, 0L);
+	//---------------------------------------//
+	//             DRAW ALL MODELS           //
+	//---------------------------------------//
 
-	glEnable(GL_DEPTH_TEST);
-
-	// DRAW ALL MODELS
-
- 	glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-	glUniform3f(glGetUniformLocation(pr_wb, "camera_look"), look.x,look.y,look.z);
-	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
-	glBindVertexArray(WBVertexArrayObjID);    // Select VAO
-	glDrawElements(GL_TRIANGLES, wb->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_wr, "camera_look"), look.x,look.y,look.z);
-  glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_wr, "pack_mat"), 1, GL_TRUE, packed1.m);
-	glBindVertexArray(WRVertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, wr->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_ww, "camera_look"), look.x,look.y,look.z);
- 	glUniform4f(glGetUniformLocation(pr_ww,"plain_color"),1.0f,1.0f,1.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_ww, "pack_mat"), 1, GL_TRUE, packed2.m);
-	glBindVertexArray(WWVertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, ww->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_b1, "camera_look"), look.x,look.y,look.z);
-  glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_b1, "pack_mat"), 1, GL_TRUE, bladeMatrix(0,projectedCam,t_rot).m);
-	glBindVertexArray(B1VertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, b1->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_b2, "camera_look"), look.x,look.y,look.z);
-	glUniform4f(glGetUniformLocation(pr_b2,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_b2, "pack_mat"), 1, GL_TRUE, bladeMatrix(1,projectedCam,t_rot).m);
-	glBindVertexArray(B2VertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, b2->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_b3, "camera_look"), look.x,look.y,look.z);
-	glUniform4f(glGetUniformLocation(pr_b3,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_b3, "pack_mat"), 1, GL_TRUE, bladeMatrix(2,projectedCam,t_rot).m);
-	glBindVertexArray(B3VertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, b3->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_b4, "camera_look"), look.x,look.y,look.z);
-	glUniform4f(glGetUniformLocation(pr_b4,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_b4, "pack_mat"), 1, GL_TRUE, bladeMatrix(3,projectedCam,t_rot).m);
-	glBindVertexArray(B4VertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, b4->numIndices, GL_UNSIGNED_INT, 0L);
-
-	glUniform3f(glGetUniformLocation(pr_g, "camera_look"), look.x,look.y,look.z);
-	glUniform4f(glGetUniformLocation(pr_g,"plain_color"),0.2f,0.7f,0.2f,1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(pr_g, "pack_mat"), 1, GL_TRUE, packedg.m);
-	glBindVertexArray(GVertexArrayObjID);
-	glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
+	glUseProgram(pr_wb);
+	{ // DRAW THERE
+	draw_object(look, SetVector(0.5,0.3,0.0), packed, WBVertexArrayObjID, pr_wb, wb);
+	draw_object(look, SetVector(1.0,0.0,0.0), packed1, WRVertexArrayObjID, pr_wr, wr);
+	draw_object(look, SetVector(1.0,1.0,1.0), packed2, WWVertexArrayObjID, pr_ww, ww);
+	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(0,projectedCam,t_rot), B1VertexArrayObjID, pr_b1, b1);
+	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(1,projectedCam,t_rot), B2VertexArrayObjID, pr_b2, b2);
+	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(2,projectedCam,t_rot), B3VertexArrayObjID, pr_b3, b3);
+	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(3,projectedCam,t_rot), B4VertexArrayObjID, pr_b4, b4);
+	draw_object(look, SetVector(0.2,0.7,0.2), packedg, GVertexArrayObjID, pr_g, g);
+	}
 
 	printError("display");
-
 
 	last_mouse_x = mouse_x;
 	last_mouse_y = mouse_y;
 	glutSwapBuffers();
 }
 
-/*void draw_shader(vec3 look, vec3 color, mat4 mat, unsigned int id, GLuint pr, Model m){
+void draw_skybox(mat4 mat, unsigned int id, GLuint pr, Model * m){
+	glDisable(GL_DEPTH_TEST);
+
+	glUniformMatrix4fv(glGetUniformLocation(pr, "pack_mat"), 1, GL_TRUE, mat.m);
+	glBindVertexArray(id);    // Select VAO
+	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
+
+	glEnable(GL_DEPTH_TEST);
+}
+
+void draw_object(vec3 look, vec3 color, mat4 mat, unsigned int id, GLuint pr, Model * m){
 	glUniform3f(glGetUniformLocation(pr, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr, "plain_color"), color.x, color.y, color.z,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr, "pack_mat"), 1, GL_TRUE, mat.m);
 	glBindVertexArray(id);
 	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
-}*/
+}
 
 
 void OnTimer(int value)
@@ -359,16 +330,16 @@ void OnTimer(int value)
 int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
-	glutInitContextVersion(3, 2);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	width = 400;
 	height = 400;
 	glutInitWindowSize(400, 400);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitContextVersion(3, 2);
 	glutCreateWindow ("Gotta Grind Dat Wheat !");
 	glutDisplayFunc(display);
+
   init ();
+
   glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
@@ -428,8 +399,6 @@ void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * r
 void world_to_view_transform(mat4 * projectedCam, mat4 * result){
 	* result = Mult(* projectedCam, * result);
 }
-
-
 
 mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
@@ -495,7 +464,6 @@ void createModel( Model* result, GLfloat vArray[] ,int vASize, GLuint iArray[], 
 	}
   result->texCoordArray = NULL;
 }
-
 
 /**
 * @param result: if you want to put a base Matrix, and also the result matrix
