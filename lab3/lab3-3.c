@@ -34,7 +34,6 @@ void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * r
 void world_to_view_transform(mat4 * projectedCam, mat4 * result);
 void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result);
 mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
-void createModel( Model* result, GLfloat* vArray ,int vASize, GLuint* iArray, int iASize );
 
 void draw_object(vec3 look, vec3 color, mat4 mat, GLuint shader, Model * m);
 void draw_skybox(mat4 mat, GLuint shader, Model * m);
