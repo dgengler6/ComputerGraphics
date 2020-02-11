@@ -1,19 +1,22 @@
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
-  #define RIGHTKEY 'd'
-  #define LEFTKEY 'q'
-  #define DOWNKEY 'a'
-  #define UPKEY 'e'
-  #define FORWARDKEY 'z'
-  #define BACKKEY 's'
-#else 
-  #define RIGHTKEY 'd'
-  #define LEFTKEY 'a'
-  #define DOWNKEY 'q'
-  #define UPKEY 'e'
-  #define FORWARDKEY 'w'
-  #define BACKKEY 's'
+	// Linking hint for Lightweight IDE
+	// uses framework Cocoa
+	#define RIGHTKEY 'd'
+	#define LEFTKEY 'q'
+	#define DOWNKEY 'a'
+	#define UPKEY 'e'
+	#define FORWARDKEY 'z'
+	#define BACKKEY 's'
+#else
+	#define RIGHTKEY 'd'
+	#define LEFTKEY 'a'
+	#define DOWNKEY 'q'
+	#define UPKEY 'e'
+	#define FORWARDKEY 'w'
+	#define BACKKEY 's'
+
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
@@ -233,7 +236,7 @@ void display(void)
 
   //Camera stuff 
 
-	mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, (0.5f - mouse_y /(float)height) * M_PI);
+	mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, 0); //(0.5f - mouse_y /(float)height) * M_PI
 	vec3 look = MultVec3(look_mat, SetVector(0,0,1));
 	direction = MultVec3(look_mat, direction);
 	p = VectorAdd(p, direction);
@@ -374,16 +377,6 @@ int main(int argc, char *argv[])
 
 
 
-void special_key_func(unsigned char key, int x, int y){
-	printf("%d\n", (int) key);
-	/*switch (key) {
-		case GLUT_KEY_CONTROL:
-		break;
-		case GLUT_KEY_LEFT_SHIFT:
-		break;
-	}*/
-}
-
 void reshape(int w, int h){
 	width = w;
 	height = h;
@@ -419,7 +412,6 @@ void input_update(void){
 
 	if (glutKeyIsDown('p'))
 		actual_speed /= 2;
-
 }
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
