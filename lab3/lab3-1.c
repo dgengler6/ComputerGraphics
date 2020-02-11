@@ -32,6 +32,7 @@ void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * r
 void world_to_view_transform(mat4 * projectedCam, mat4 * result);
 void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result);
 mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
+void createModel( Model* result, GLfloat* vArray ,int vASize, GLuint* iArray, int iASize );
 
 void input_update(void);
 void mouse_motion (int x, int y);
@@ -49,12 +50,13 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 
 	//Macro
 		#define near 1.0
-		#define far 30.0
+		#define far 100.0
 		#define right 0.5
 		#define left -0.5
 		#define top 0.5
 		#define bottom -0.5
 
+		//Creates the differents VBO for the given object
 		#define buffer_object(NAME) \
 		unsigned int NAME ## VertexBufferObjID; \
 		unsigned int NAME ## IndexBufferObjID; \
@@ -65,9 +67,24 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 		glGenBuffers(1, &(NAME ## NormalBufferObjID)); \
 		glGenBuffers(1, &(NAME ## TexCoordBufferObjID));
 
+		//Create the model based on .obj
 		#define buffer_full_setup(MODEL, NAME, MODEL_STRING, PROGRAM) \
 		buffer_object(NAME); \
 		MODEL=LoadModel(MODEL_STRING); \
+		glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
+		glBindVertexArray(NAME ## VertexArrayObjID); \
+		if (MODEL->texCoordArray != NULL) \
+		buffer_setup("in_TexCoord", NAME ## TexCoordBufferObjID, MODEL->texCoordArray, MODEL->numVertices, 2, PROGRAM); \
+		buffer_setup("in_Position", NAME ## VertexBufferObjID, MODEL->vertexArray, MODEL->numVertices, 3, PROGRAM); \
+		buffer_setup("in_Normal", NAME ## NormalBufferObjID, MODEL->normalArray, MODEL->numVertices, 3, PROGRAM); \
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NAME ## IndexBufferObjID); \
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, MODEL->numIndices*sizeof(GLuint), MODEL->indexArray, GL_STATIC_DRAW);
+
+
+		//Create the model based on user defined arrays 
+		#define buffer_full_setup_homemade_boi_we_got_this(MODEL, NAME, VERTICES_ARRAY, V_SIZE, INDEXES_ARRAY, I_SIZE, PROGRAM) \
+		buffer_object(NAME); \
+		createModel(MODEL, VERTICES_ARRAY,V_SIZE, INDEXES_ARRAY, I_SIZE); \
 		glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
 		glBindVertexArray(NAME ## VertexArrayObjID); \
 		if (MODEL->texCoordArray != NULL) \
@@ -81,23 +98,31 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 // Data would normally be read from files
 
 // Reference to shader program
-GLuint pr_wb, pr_wr, pr_ww, pr_b1, pr_b2, pr_b3, pr_b4;
+GLuint pr_wb, pr_wr, pr_ww, pr_b1, pr_b2, pr_b3, pr_b4, pr_g, pr_sb;
 
 // Model and Textures
-Model * wb, * wr, * ww, * b, * b1, * b2, * b3 , * b4;
-GLuint texture;
+Model * wb, * wr, * ww, * b, * b1, * b2, * b3 , * b4, * g, * sb;
+GLuint sbTexture;
 
 mat4 projectionMatrix;
 
 mat4 camMatrix;
 
 // vertex array object
-unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, B1VertexArrayObjID,B2VertexArrayObjID,B3VertexArrayObjID,B4VertexArrayObjID;
+
+// Windmill
+unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, B1VertexArrayObjID,B2VertexArrayObjID,B3VertexArrayObjID, B4VertexArrayObjID;
+
+// Environnement 
+unsigned int GVertexArrayObjID, SBVertexArrayObjID;
+
 
 int mouse_x, mouse_y;
 int last_mouse_x, last_mouse_y;
 
 int width, height;
+
+
 
 vec3 direction;
 GLfloat speed;
@@ -107,10 +132,22 @@ vec3 p; //= SetVector(15,10,15); // Camera position
 vec3 l; //= SetVector(0,5,0); // Look-at point
 vec3 v; //= SetVector(0,1,0); //Up vector
 
+
+//Ground polygon 
+
+GLfloat groundVertices[] =
+{
+	50.0f,0.0f,50.0f,
+  -50.0f,0.0f,50.0f,
+	50.0f,0.0f,-50.0f,
+  -50.0f,0.0f,-50.0f
+};
+
+GLuint groundIndex[] = {0,1,2, 1,2,3};
+
+
 void init(void)
 {
-	//glutSpecialFunc(special_key_func);
-	//glutMotionFunc(mouse_motion);
 	glutPassiveMotionFunc(mouse_motion);
 	glutReshapeFunc(reshape);
 
@@ -128,31 +165,48 @@ void init(void)
 	// GL inits
 	glClearColor(1,0.2,1,0);
 	printError("GL inits");
+
+
 	// Load and compile shader
 	pr_wb = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_wr = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_ww = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_b1 = loadShaders("lab3-1.vert","lab3-1.frag");
-  pr_b2 = loadShaders("lab3-1.vert","lab3-1.frag");
-  pr_b3 = loadShaders("lab3-1.vert","lab3-1.frag");
-  pr_b4 = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_b2 = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_b3 = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_b4 = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_g = loadShaders("lab3-1.vert","lab3-1.frag");
+	pr_sb = loadShaders("lab3-1.vert","lab3-1sb.frag");
+
+
 	printError("init shader");
+
+	
+	
 
 	// Upload geometry to the GPU:
 	buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
 	buffer_full_setup(wr, WR, "windmill/windmill-roof.obj", pr_wr);
 	buffer_full_setup(ww, WW, "windmill/windmill-walls.obj", pr_ww);
 	buffer_full_setup(b1, B1, "windmill/blade.obj", pr_b1);
-  buffer_full_setup(b2, B2, "windmill/blade.obj", pr_b2);
-  buffer_full_setup(b3, B3, "windmill/blade.obj", pr_b3);
-  buffer_full_setup(b4, B4, "windmill/blade.obj", pr_b4);
+	buffer_full_setup(b2, B2, "windmill/blade.obj", pr_b2);
+	buffer_full_setup(b3, B3, "windmill/blade.obj", pr_b3);
+	buffer_full_setup(b4, B4, "windmill/blade.obj", pr_b4);
+	buffer_full_setup(sb, SB, "skybox.obj", pr_sb);
 
-		projectionMatrix = frustum(left, right, bottom, top, near, far);
+	//malloc Ground
+	g = malloc(sizeof(Model));
+	memset(g, 0, sizeof(Model));
+
+	buffer_full_setup_homemade_boi_we_got_this(g, G, groundVertices ,3*4, groundIndex, 3*2, pr_g);
+
+
+	projectionMatrix = frustum(left, right, bottom, top, near, far);
 
     // Load and bind the texture
-    LoadTGATextureSimple("dam.tga", &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(glGetUniformLocation(pr_wb, "texUnit"), 0);
+    LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
+    glBindTexture(GL_TEXTURE_2D, sbTexture);
+    glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
     glActiveTexture(GL_TEXTURE0);
 
 	// Allocate and activate Vertex Array Object
@@ -163,9 +217,10 @@ void init(void)
 	printError("init arrays");
 }
 
+
 void display(void)
 {
-	printf("%f, %f\n", mouse_x/(float)width, mouse_y/(float)height);
+	//printf("%f, %f\n", mouse_x/(float)width, mouse_y/(float)height);
 	printError("pre display");
 
 	direction = SetVector(0,0,0);
@@ -176,7 +231,7 @@ void display(void)
 	if (direction.x != 0 || direction.y != 0 || direction.z != 0)
 		direction = ScalarMult(Normalize(direction), actual_speed);
 
-
+  //Camera stuff 
 
 	mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, (0.5f - mouse_y /(float)height) * M_PI);
 	vec3 look = MultVec3(look_mat, SetVector(0,0,1));
@@ -184,58 +239,104 @@ void display(void)
 	p = VectorAdd(p, direction);
 	l = VectorAdd(p, look);
 	camMatrix = lookAtv(p, l, v);
-
-  GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
-  mat4 t_rot = Rx(t/1000);
-
 	mat4 projectedCam = Mult(projectionMatrix, camMatrix);
-  //balcony
-  mat4 packed;
+
+
+  // Matrix projections 
+
+	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+	mat4 t_rot = Rx(t/1000);
+
+	//balcony
+	mat4 packed;
 	packed_transform(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1), &projectedCam, &packed);
-  // roof
-  mat4 packed1;
+
+	// roof
+	mat4 packed1;
 	packed_transform(SetVector(0,0.5,0), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packed1);
-  // walls
-  mat4 packed2;
+
+	// walls
+	mat4 packed2;
 	packed_transform(SetVector(0,0,0), SetVector(0,M_PI,0), SetVector(1,1,1), &projectedCam, &packed2);
-	// blade
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// ground 
+	mat4 packedg;
+	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packedg);
 
-  glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+
+  //UPLOAD UNIFORM TO SHADERS + DRAW 
+
+
+  	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// DRAW SKYBOX 
+
+	glDisable(GL_DEPTH_TEST);
+
+	mat4 camUntranslated = camMatrix;
+	camUntranslated.m[3] = 0;
+	camUntranslated.m[7] = 0;
+	camUntranslated.m[11] = 0;
+	camUntranslated = Mult(projectionMatrix,camUntranslated);
+	mat4 packedsb;
+	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &camUntranslated, &packedsb);
+	
+	glUniform3f(glGetUniformLocation(pr_sb, "camera_look"), 0.0f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_sb, "pack_mat"), 1, GL_TRUE, packedsb.m);
+	glBindVertexArray(SBVertexArrayObjID);    // Select VAO
+	glDrawElements(GL_TRIANGLES, sb->numIndices, GL_UNSIGNED_INT, 0L);
+
+	glEnable(GL_DEPTH_TEST);
+
+	// DRAW ALL MODELS 
+
+	glUniform3f(glGetUniformLocation(pr_wr, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_ww, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_wb, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_b1, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_b2, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_b3, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_b4, "camera_look"), look.x,look.y,look.z);
+	glUniform3f(glGetUniformLocation(pr_g, "camera_look"), look.x,look.y,look.z);
+ 	glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
 	glBindVertexArray(WBVertexArrayObjID);    // Select VAO
 	glDrawElements(GL_TRIANGLES, wb->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
+  	glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wr, "pack_mat"), 1, GL_TRUE, packed1.m);
 	glBindVertexArray(WRVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, wr->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_ww,"plain_color"),1.0f,1.0f,1.0f,1.0f);
+ 	glUniform4f(glGetUniformLocation(pr_ww,"plain_color"),1.0f,1.0f,1.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_ww, "pack_mat"), 1, GL_TRUE, packed2.m);
 	glBindVertexArray(WWVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, ww->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+  	glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_b1, "pack_mat"), 1, GL_TRUE, bladeMatrix(0,projectedCam,t_rot).m);
 	glBindVertexArray(B1VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b1->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_b2,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-  glUniformMatrix4fv(glGetUniformLocation(pr_b2, "pack_mat"), 1, GL_TRUE, bladeMatrix(1,projectedCam,t_rot).m);
+	glUniform4f(glGetUniformLocation(pr_b2,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_b2, "pack_mat"), 1, GL_TRUE, bladeMatrix(1,projectedCam,t_rot).m);
 	glBindVertexArray(B2VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b2->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_b3,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-  glUniformMatrix4fv(glGetUniformLocation(pr_b3, "pack_mat"), 1, GL_TRUE, bladeMatrix(2,projectedCam,t_rot).m);
+	glUniform4f(glGetUniformLocation(pr_b3,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_b3, "pack_mat"), 1, GL_TRUE, bladeMatrix(2,projectedCam,t_rot).m);
 	glBindVertexArray(B3VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b3->numIndices, GL_UNSIGNED_INT, 0L);
 
-  glUniform4f(glGetUniformLocation(pr_b4,"plain_color"),0.5f,0.4f,0.0f,1.0f);
-  glUniformMatrix4fv(glGetUniformLocation(pr_b4, "pack_mat"), 1, GL_TRUE, bladeMatrix(3,projectedCam,t_rot).m);
+	glUniform4f(glGetUniformLocation(pr_b4,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_b4, "pack_mat"), 1, GL_TRUE, bladeMatrix(3,projectedCam,t_rot).m);
 	glBindVertexArray(B4VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b4->numIndices, GL_UNSIGNED_INT, 0L);
+
+	glUniform4f(glGetUniformLocation(pr_g,"plain_color"),0.2f,0.7f,0.2f,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr_g, "pack_mat"), 1, GL_TRUE, packedg.m);
+	glBindVertexArray(GVertexArrayObjID);
+	//glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
 
 	printError("display");
 
@@ -332,9 +433,12 @@ void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * r
 	* result = Mult(angle_transform(r.x, r.y, r.z), S(s.x,s.y,s.z));
 	* result = Mult(T(t.x, t.y, t.z),*result);
 }
+
 void world_to_view_transform(mat4 * projectedCam, mat4 * result){
 	* result = Mult(* projectedCam, * result);
 }
+
+
 
 mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
@@ -384,7 +488,23 @@ mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z) {
 }
 
 mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot){
-	return mult_rep(false, 5, time_rot, Rx(i * M_PI_2), Ry(M_PI_2), T(0,9.2,4.8), cam);
+	return mult_rep(false, 6,S(1,0.7,0.85), time_rot, Rx(i * M_PI_2), Ry(M_PI_2), T(0,9.2,4.8), cam);
+}
+
+void createModel( Model* result, GLfloat vArray[] ,int vASize, GLuint iArray[], int iASize ){
+	result->numVertices = vASize;
+	result->numIndices = iASize;
+	//result->vertexArray = malloc(sizeof(GLfloat) * vASize);
+	result->vertexArray = vArray;
+	//result->indexArray = malloc(sizeof(GLuint) * iASize );
+	result->indexArray = iArray;
+	result->normalArray = malloc(sizeof(GLfloat) * vASize);
+	for(int i = 0 ; i<vASize/3;i+=3){
+	result->normalArray[i] = 0.0f;
+	result->normalArray[i+1] = 1.0f;
+	result->normalArray[i+3] = 0.0f;
+}
+  result->texCoordArray = NULL;
 }
 
 /**
