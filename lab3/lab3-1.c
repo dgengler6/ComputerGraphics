@@ -11,11 +11,60 @@
 #include <math.h>
 #include "loadobj.h"
 #include "LoadTGA.h"
+#include <stdarg.h>
 
 // FUnction headers
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
 mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot);
+void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result);
+void world_to_view_transform(mat4 * projectedCam, mat4 * result);
+void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result);
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
+
+void input_update(void);
+void mouse_motion (int x, int y);
+void special_key_func(unsigned char key, int x, int y);
+void reshape(int w, int h);
+
+void advanced_mult_rep(mat4 * result, int i, int n, ...);
+mat4 mult_rep(bool from_left, int n, ...);
+
+mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
+			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
+			GLfloat p8, GLfloat p9, GLfloat p10, GLfloat p11,
+			GLfloat p12, GLfloat p13, GLfloat p14, GLfloat p15
+		);
+
+	//Macro
+		#define near 1.0
+		#define far 30.0
+		#define right 0.5
+		#define left -0.5
+		#define top 0.5
+		#define bottom -0.5
+
+		#define buffer_object(NAME) \
+		unsigned int NAME ## VertexBufferObjID; \
+		unsigned int NAME ## IndexBufferObjID; \
+		unsigned int NAME ## NormalBufferObjID; \
+		unsigned int NAME ## TexCoordBufferObjID; \
+		glGenBuffers(1, &(NAME ## VertexBufferObjID)); \
+		glGenBuffers(1, &(NAME ## IndexBufferObjID)); \
+		glGenBuffers(1, &(NAME ## NormalBufferObjID)); \
+		glGenBuffers(1, &(NAME ## TexCoordBufferObjID));
+
+		#define buffer_full_setup(MODEL, NAME, MODEL_STRING, PROGRAM) \
+		buffer_object(NAME); \
+		MODEL=LoadModel(MODEL_STRING); \
+		glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
+		glBindVertexArray(NAME ## VertexArrayObjID); \
+		if (MODEL->texCoordArray != NULL) \
+		buffer_setup("in_TexCoord", NAME ## TexCoordBufferObjID, MODEL->texCoordArray, MODEL->numVertices, 2, PROGRAM); \
+		buffer_setup("in_Position", NAME ## VertexBufferObjID, MODEL->vertexArray, MODEL->numVertices, 3, PROGRAM); \
+		buffer_setup("in_Normal", NAME ## NormalBufferObjID, MODEL->normalArray, MODEL->numVertices, 3, PROGRAM); \
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NAME ## IndexBufferObjID); \
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, MODEL->numIndices*sizeof(GLuint), MODEL->indexArray, GL_STATIC_DRAW);
 
 // Globals
 // Data would normally be read from files
@@ -27,65 +76,40 @@ GLuint pr_wb, pr_wr, pr_ww, pr_b1, pr_b2, pr_b3, pr_b4;
 Model * wb, * wr, * ww, * b, * b1, * b2, * b3 , * b4;
 GLuint texture;
 
-#define near 1.0
-#define far 30.0
-#define right 0.5
-#define left -0.5
-#define top 0.5
-#define bottom -0.5
-
-#define buffer_object(NAME) \
-	unsigned int NAME ## VertexBufferObjID; \
-	unsigned int NAME ## IndexBufferObjID; \
-	unsigned int NAME ## NormalBufferObjID; \
-	unsigned int NAME ## TexCoordBufferObjID; \
-	glGenBuffers(1, &(NAME ## VertexBufferObjID)); \
-	glGenBuffers(1, &(NAME ## IndexBufferObjID)); \
-	glGenBuffers(1, &(NAME ## NormalBufferObjID)); \
-	glGenBuffers(1, &(NAME ## TexCoordBufferObjID));
-
-#define buffer_full_setup(MODEL, NAME, MODEL_STRING, PROGRAM) \
-	buffer_object(NAME); \
-	MODEL=LoadModel(MODEL_STRING); \
-	glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
-	glBindVertexArray(NAME ## VertexArrayObjID); \
-	if (MODEL->texCoordArray != NULL) \
-		buffer_setup("in_TexCoord", NAME ## TexCoordBufferObjID, MODEL->texCoordArray, MODEL->numVertices, 2, PROGRAM); \
-	buffer_setup("in_Position", NAME ## VertexBufferObjID, MODEL->vertexArray, MODEL->numVertices, 3, PROGRAM); \
-	buffer_setup("in_Normal", NAME ## NormalBufferObjID, MODEL->normalArray, MODEL->numVertices, 3, PROGRAM); \
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NAME ## IndexBufferObjID); \
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, MODEL->numIndices*sizeof(GLuint), MODEL->indexArray, GL_STATIC_DRAW);
-
-void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
-void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result);
-void world_to_view_transform(mat4 * projectedCam, mat4 * result);
-void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam, mat4 * result);
-void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result);
-mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
-			GLfloat p4, GLfloat p5, GLfloat p6, GLfloat p7,
-			GLfloat p8, GLfloat p9, GLfloat p10, GLfloat p11,
-			GLfloat p12, GLfloat p13, GLfloat p14, GLfloat p15
-		);
-
-void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_object);
-	glBufferData(GL_ARRAY_BUFFER, size*dim*sizeof(GLfloat), array, GL_STATIC_DRAW);
-	glVertexAttribPointer(glGetAttribLocation(prog, in_shader), dim, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(glGetAttribLocation(prog, in_shader));
-}
-
-
-
 mat4 projectionMatrix;
 
 mat4 camMatrix;
 
 // vertex array object
-  unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, B1VertexArrayObjID,B2VertexArrayObjID,B3VertexArrayObjID,B4VertexArrayObjID;
+unsigned int WBVertexArrayObjID, WRVertexArrayObjID, WWVertexArrayObjID, B1VertexArrayObjID,B2VertexArrayObjID,B3VertexArrayObjID,B4VertexArrayObjID;
+
+int mouse_x, mouse_y;
+int last_mouse_x, last_mouse_y;
+
+int width, height;
+
+vec3 direction;
+GLfloat speed;
+GLfloat actual_speed;
+
+vec3 p; //= SetVector(15,10,15); // Camera position
+vec3 l; //= SetVector(0,5,0); // Look-at point
+vec3 v; //= SetVector(0,1,0); //Up vector
 
 void init(void)
 {
+	//glutSpecialFunc(special_key_func);
+	//glutMotionFunc(mouse_motion);
+	glutPassiveMotionFunc(mouse_motion);
+	glutReshapeFunc(reshape);
+
 	// vertex buffer object, used for uploading the geometry
+	speed = 0.1;
+	actual_speed = speed;
+
+	p = SetVector(15,10,15);
+	l = SetVector(0,5,0); // Look-at point
+	v = SetVector(0,1,0);
 
   unsigned int projectionMatrixBufferObjID;
 	dumpInfo();
@@ -114,11 +138,6 @@ void init(void)
 
 		projectionMatrix = frustum(left, right, bottom, top, near, far);
 
-		vec3 p = SetVector(15,10,15); // Camera position
-		vec3 l = SetVector(0,5,0); // Look-at point
-		vec3 v = SetVector(0,1,0); //Up vector
-		camMatrix = lookAtv(p, l, v);
-
     // Load and bind the texture
     LoadTGATextureSimple("dam.tga", &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -135,31 +154,40 @@ void init(void)
 
 void display(void)
 {
+	printf("%f, %f\n", mouse_x/(float)width, mouse_y/(float)height);
 	printError("pre display");
 
-    GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
-    mat4 t_rot = Rx(t/1000 );
+	direction = SetVector(0,0,0);
+	actual_speed = speed;
 
-		mat4 projectedCam = Mult(projectionMatrix, camMatrix);
-    //balcony
-    mat4 trans = T(0, 0, 0);
-    mat4 rot = Ry(-M_PI_2);
-    mat4 total = Mult(trans,rot);
-    mat4 packed = Mult(projectedCam, total);
-    // roof
-    mat4 trans1 = T(0, 0.5, 0);
-    mat4 rot1 = Ry(0);
-    mat4 total1 = Mult(trans1,rot1);
-		mat4 packed1 = Mult(projectedCam, total1);
-    // walls
-    mat4 trans2 = T(0, 0, 0);
-    mat4 rot2 = Ry(M_PI);
-    mat4 total2 = Mult(trans2,rot2);
-    mat4 packed2 = Mult(projectedCam, total2);
-		// blade
+	input_update();
+
+	if (direction.x != 0 || direction.y != 0 || direction.z != 0)
+		direction = ScalarMult(Normalize(direction), actual_speed);
 
 
 
+	mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, (0.5f - mouse_y /(float)height) * M_PI);
+	vec3 look = MultVec3(look_mat, SetVector(0,0,1));
+	direction = MultVec3(look_mat, direction);
+	p = VectorAdd(p, direction);
+	l = VectorAdd(p, look);
+	camMatrix = lookAtv(p, l, v);
+
+  GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+  mat4 t_rot = Rx(t/1000);
+
+	mat4 projectedCam = Mult(projectionMatrix, camMatrix);
+  //balcony
+  mat4 packed;
+	packed_transform(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1), &projectedCam, &packed);
+  // roof
+  mat4 packed1;
+	packed_transform(SetVector(0,0.5,0), SetVector(0,0,0), SetVector(1,1,1), &projectedCam, &packed1);
+  // walls
+  mat4 packed2;
+	packed_transform(SetVector(0,0,0), SetVector(0,M_PI,0), SetVector(1,1,1), &projectedCam, &packed2);
+	// blade
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -198,24 +226,20 @@ void display(void)
 	glBindVertexArray(B4VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b4->numIndices, GL_UNSIGNED_INT, 0L);
 
-
-
 	printError("display");
 
 
+	last_mouse_x = mouse_x;
+	last_mouse_y = mouse_y;
 	glutSwapBuffers();
 }
 
 
 
 void OnTimer(int value)
-
 {
-
     glutPostRedisplay();
-
     glutTimerFunc(20, &OnTimer, value);
-
 }
 
 int main(int argc, char *argv[])
@@ -223,6 +247,9 @@ int main(int argc, char *argv[])
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 2);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+	width = 400;
+	height = 400;
+	glutInitWindowSize(400, 400);
 	glutCreateWindow ("Gotta Grind Dat Wheat !");
 	glutDisplayFunc(display);
     init ();
@@ -234,10 +261,74 @@ int main(int argc, char *argv[])
 }
 
 
+
+void special_key_func(unsigned char key, int x, int y){
+	printf("%d\n", (int) key);
+	/*switch (key) {
+		case GLUT_KEY_CONTROL:
+		break;
+		case GLUT_KEY_LEFT_SHIFT:
+		break;
+	}*/
+}
+
+void reshape(int w, int h){
+	width = w;
+	height = h;
+}
+
+void mouse_motion (int x, int y) {
+	mouse_x = x;
+	mouse_y = y;
+}
+
+void input_update(void){
+
+	if (glutKeyIsDown('w'))
+		direction.z += 1;
+
+	if (glutKeyIsDown('s'))
+		direction.z -= 1;
+
+	if (glutKeyIsDown('a'))
+		direction.x += 1;
+
+	if (glutKeyIsDown('d'))
+		direction.x -= 1;
+
+	if (glutKeyIsDown('e'))
+		direction.y += 1;
+
+	if (glutKeyIsDown('q'))
+		direction.y -= 1;
+
+	if (glutKeyIsDown((char) 14))
+		actual_speed *= 2;
+
+	if (glutKeyIsDown((char) 16))
+		actual_speed /= 2;
+
+	actual_speed = speed;
+
+	if (glutKeyIsDown((char) 62))
+		actual_speed *= 2;
+
+	if (glutKeyIsDown((char) 37) || glutKeyIsDown((char) 105))
+	 	actual_speed /= 2;
+
+	printVec3(p);
+	printf("%c\n", (char) 62);
+}
+
+void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_object);
+	glBufferData(GL_ARRAY_BUFFER, size*dim*sizeof(GLfloat), array, GL_STATIC_DRAW);
+	glVertexAttribPointer(glGetAttribLocation(prog, in_shader), dim, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(glGetAttribLocation(prog, in_shader));
+}
+
 void model_to_world_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * result){
-	mat4 rot;
-	euler_transform(r.x, r.y, r.z, &rot);
-	* result = Mult(rot, S(s.x,s.y,s.z));
+	* result = Mult(angle_transform(r.x, r.y, r.z), S(s.x,s.y,s.z));
 	* result = Mult(T(t.x, t.y, t.z),*result);
 }
 void world_to_view_transform(mat4 * projectedCam, mat4 * result){
@@ -275,7 +366,7 @@ void packed_transform(const vec3 t, const vec3 r, const vec3 s, mat4 * projected
 	world_to_view_transform(projectedCam, result);
 }
 
-void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result) {
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z) {
 	GLfloat c1 = cos(z);
 	GLfloat s1 = sin(z);
 	GLfloat c2 = cos(y);
@@ -288,17 +379,51 @@ void euler_transform(GLfloat x, GLfloat y, GLfloat z, mat4 * result) {
 									s1*s3 - c1*c3*s2, c3*s1 + c1*s2*s3, c1*c2 , 0,
 									0, 0 , 0, 1
 									 );
-  * result = rot;
-
-
+  return rot;
+}
 
 mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot){
-  mat4 trans4 = T(0, 9.2, 4.8);
-  mat4 rot4 = Ry(M_PI_2);
-  mat4 total4 = Mult(trans4,rot4);
-  mat4 br4 = Mult(Rx(i*M_PI_2),time_rot) ;
-  total4= Mult(total4,br4);
-  mat4 packed4 = Mult(cam, total4);
-  return packed4;
+	return mult_rep(false, 5, time_rot, Rx(i * M_PI_2), Ry(M_PI_2), T(0,9.2,4.8), cam);
+}
 
+/**
+* @param result: if you want to put a base Matrix, and also the result matrix
+* @param i:			 where you want to put the result base matrix in the multiplication, -1 if you don't want do it
+* @param n:			 number of matrix you want to multiply
+**/
+void advanced_mult_rep(mat4 * result, int i, int n, ...){
+	va_list valist;
+	va_start(valist, n);
+
+	if (i == -1) * result = IdentityMatrix();
+	int k = 0;
+	mat4 below = IdentityMatrix();
+
+	while (k++ <= n) {
+		if (k < i)
+			below = Mult((mat4) va_arg(valist, mat4), below);
+		else if (k > i)
+			* result = Mult((mat4) va_arg(valist, mat4), * result);
+		else
+			* result = Mult(* result, below);
+	}
+
+	va_end(valist);
+}
+
+mat4 mult_rep(bool from_left, int n, ...){
+	va_list valist;
+	va_start(valist, n);
+
+	mat4 result = IdentityMatrix();
+
+	if (from_left)
+		while (n-- > 0)
+			result = Mult(result, (mat4) va_arg(valist, mat4));
+	else
+		while (n-- > 0)
+			result = Mult((mat4) va_arg(valist, mat4), result);
+
+	va_end(valist);
+	return result;
 }
