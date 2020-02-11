@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
+<<<<<<< HEAD
 	// Linking hint for Lightweight IDE
 	// uses framework Cocoa
 	#define RIGHTKEY 'd'
@@ -16,6 +17,21 @@
 	#define UPKEY 'e'
 	#define FORWARDKEY 'w'
 	#define BACKKEY 's'
+=======
+  #define RIGHTKEY 'd'
+  #define LEFTKEY 'q'
+  #define DOWNKEY 'a'
+  #define UPKEY 'e'
+  #define FORWARDKEY 'z'
+  #define BACKKEY 's'
+#else 
+  #define RIGHTKEY 'd'
+  #define LEFTKEY 'a'
+  #define DOWNKEY 'q'
+  #define UPKEY 'e'
+  #define FORWARDKEY 'w'
+  #define BACKKEY 's'
+>>>>>>> da6f31602c8ef2263d5287e9edd2fbc6dbf7108e
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
@@ -26,6 +42,7 @@
 #include <stdarg.h>
 
 // FUnction headers
+
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog);
 mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot);
@@ -308,6 +325,10 @@ void input_update(void){
 
 	if (glutKeyIsDown('p'))
 		actual_speed /= 2;
+<<<<<<< HEAD
+=======
+
+>>>>>>> da6f31602c8ef2263d5287e9edd2fbc6dbf7108e
 }
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
