@@ -1,7 +1,7 @@
 #version 150
 
 //varying
-in vec3 in_Position;
+in  vec3 in_Position;
 in vec3 in_Normal;
 in vec2 in_TexCoord;
 out vec3 ex_Normal;
@@ -15,3 +15,4 @@ void main(void)
   ex_Normal = mat3(pack_mat) * in_Normal;
   ex_TexCoord = in_TexCoord;
 }
+//translationMatrix * rotationMatrix * matrix*

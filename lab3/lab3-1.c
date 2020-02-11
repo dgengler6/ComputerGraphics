@@ -163,7 +163,6 @@ void init(void)
 	l = SetVector(0,5,0); // Look-at point
 	v = SetVector(0,1,0);
 
-  unsigned int projectionMatrixBufferObjID;
 	dumpInfo();
 
 	// GL inits
@@ -180,13 +179,10 @@ void init(void)
 	pr_b3 = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_b4 = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_g = loadShaders("lab3-1.vert","lab3-1.frag");
-	pr_sb = loadShaders("lab3-1.vert","lab3-1sb.frag");
+	pr_sb = loadShaders("lab3-1sb.vert","lab3-1sb.frag");
 
 
 	printError("init shader");
-
-
-
 
 	// Upload geometry to the GPU:
 	buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
@@ -204,20 +200,15 @@ void init(void)
 
 	buffer_full_setup_homemade_boi_we_got_this(g, G, groundVertices ,3*4, groundIndex, 3*2, pr_g);
 
-
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
 
     // Load and bind the texture
-    LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
-    glBindTexture(GL_TEXTURE_2D, sbTexture);
-    glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
-    glActiveTexture(GL_TEXTURE0);
-
-	// Allocate and activate Vertex Array Object
-    glGenBuffers(1, &projectionMatrixBufferObjID);
+  LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
+  glBindTexture(GL_TEXTURE_2D, sbTexture);
+  glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
+  glActiveTexture(GL_TEXTURE0);
 
 
-	// End of upload of geometry
 	printError("init arrays");
 }
 
@@ -238,7 +229,7 @@ void display(void)
 	//mat4 look_mat = angle_transform(0, - mouse_x * 2 * M_PI /(float) width, 0); //(0.5f - mouse_y /(float)height) * M_PI
 	mat4 look_mat = Mult(Rx((0.5f - mouse_y /(float)height) * M_PI), Ry(- mouse_x * 2 * M_PI /(float) width));
 	vec3 look = MultVec3(look_mat, SetVector(0,0,1));
-	printf("(%f,%f,%f)", look.x*180/M_PI, look.y*180/M_PI, look.z*180/M_PI);
+	//printf("(%f,%f,%f)", look.x*180/M_PI, look.y*180/M_PI, look.z*180/M_PI);
 	direction = MultVec3(look_mat, direction);
 	p = VectorAdd(p, direction);
 	l = VectorAdd(p, look);
@@ -271,8 +262,7 @@ void display(void)
 
   //UPLOAD UNIFORM TO SHADERS + DRAW
 
-
-  	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// DRAW SKYBOX
 
@@ -282,11 +272,11 @@ void display(void)
 	camUntranslated.m[3] = 0;
 	camUntranslated.m[7] = 0;
 	camUntranslated.m[11] = 0;
-	camUntranslated = Mult(projectionMatrix,camUntranslated);
+	camUntranslated = Mult(projectionMatrix, camUntranslated);
 	mat4 packedsb;
 	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &camUntranslated, &packedsb);
+	//world_to_view_transform(&camUntranslated, &packedsb);
 
-	glUniform3f(glGetUniformLocation(pr_sb, "camera_look"), 0.0f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_sb, "pack_mat"), 1, GL_TRUE, packedsb.m);
 	glBindVertexArray(SBVertexArrayObjID);    // Select VAO
 	glDrawElements(GL_TRIANGLES, sb->numIndices, GL_UNSIGNED_INT, 0L);
@@ -295,53 +285,53 @@ void display(void)
 
 	// DRAW ALL MODELS
 
-	glUniform3f(glGetUniformLocation(pr_wr, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_ww, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_wb, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_b1, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_b2, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_b3, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_b4, "camera_look"), look.x,look.y,look.z);
-	glUniform3f(glGetUniformLocation(pr_g, "camera_look"), look.x,look.y,look.z);
  	glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniform3f(glGetUniformLocation(pr_wb, "camera_look"), look.x,look.y,look.z);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
 	glBindVertexArray(WBVertexArrayObjID);    // Select VAO
 	glDrawElements(GL_TRIANGLES, wb->numIndices, GL_UNSIGNED_INT, 0L);
 
-  	glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
+	glUniform3f(glGetUniformLocation(pr_wr, "camera_look"), look.x,look.y,look.z);
+  glUniform4f(glGetUniformLocation(pr_wr,"plain_color"),1.0f,0.0f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wr, "pack_mat"), 1, GL_TRUE, packed1.m);
 	glBindVertexArray(WRVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, wr->numIndices, GL_UNSIGNED_INT, 0L);
 
+	glUniform3f(glGetUniformLocation(pr_ww, "camera_look"), look.x,look.y,look.z);
  	glUniform4f(glGetUniformLocation(pr_ww,"plain_color"),1.0f,1.0f,1.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_ww, "pack_mat"), 1, GL_TRUE, packed2.m);
 	glBindVertexArray(WWVertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, ww->numIndices, GL_UNSIGNED_INT, 0L);
 
-  	glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
+	glUniform3f(glGetUniformLocation(pr_b1, "camera_look"), look.x,look.y,look.z);
+  glUniform4f(glGetUniformLocation(pr_b1,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_b1, "pack_mat"), 1, GL_TRUE, bladeMatrix(0,projectedCam,t_rot).m);
 	glBindVertexArray(B1VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b1->numIndices, GL_UNSIGNED_INT, 0L);
 
+	glUniform3f(glGetUniformLocation(pr_b2, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr_b2,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_b2, "pack_mat"), 1, GL_TRUE, bladeMatrix(1,projectedCam,t_rot).m);
 	glBindVertexArray(B2VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b2->numIndices, GL_UNSIGNED_INT, 0L);
 
+	glUniform3f(glGetUniformLocation(pr_b3, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr_b3,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_b3, "pack_mat"), 1, GL_TRUE, bladeMatrix(2,projectedCam,t_rot).m);
 	glBindVertexArray(B3VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b3->numIndices, GL_UNSIGNED_INT, 0L);
 
+	glUniform3f(glGetUniformLocation(pr_b4, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr_b4,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_b4, "pack_mat"), 1, GL_TRUE, bladeMatrix(3,projectedCam,t_rot).m);
 	glBindVertexArray(B4VertexArrayObjID);
 	glDrawElements(GL_TRIANGLES, b4->numIndices, GL_UNSIGNED_INT, 0L);
 
+	glUniform3f(glGetUniformLocation(pr_g, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr_g,"plain_color"),0.2f,0.7f,0.2f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_g, "pack_mat"), 1, GL_TRUE, packedg.m);
 	glBindVertexArray(GVertexArrayObjID);
-	//glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
+	glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
 
 	printError("display");
 
@@ -351,6 +341,13 @@ void display(void)
 	glutSwapBuffers();
 }
 
+/*void draw_shader(vec3 look, vec3 color, mat4 mat, unsigned int id, GLuint pr, Model m){
+	glUniform3f(glGetUniformLocation(pr, "camera_look"), look.x,look.y,look.z);
+	glUniform4f(glGetUniformLocation(pr, "plain_color"), color.x, color.y, color.z,1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(pr, "pack_mat"), 1, GL_TRUE, mat.m);
+	glBindVertexArray(id);
+	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
+}*/
 
 
 void OnTimer(int value)
@@ -367,12 +364,12 @@ int main(int argc, char *argv[])
 	width = 400;
 	height = 400;
 	glutInitWindowSize(400, 400);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
 	glutCreateWindow ("Gotta Grind Dat Wheat !");
 	glutDisplayFunc(display);
-    init ();
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glutTimerFunc(20, &OnTimer, 0);
+  init ();
+  glutTimerFunc(20, &OnTimer, 0);
 	glutMainLoop();
 	return 0;
 }
@@ -488,16 +485,14 @@ mat4 bladeMatrix(int i, mat4 cam, mat4 time_rot){
 void createModel( Model* result, GLfloat vArray[] ,int vASize, GLuint iArray[], int iASize ){
 	result->numVertices = vASize;
 	result->numIndices = iASize;
-	//result->vertexArray = malloc(sizeof(GLfloat) * vASize);
 	result->vertexArray = vArray;
-	//result->indexArray = malloc(sizeof(GLuint) * iASize );
 	result->indexArray = iArray;
 	result->normalArray = malloc(sizeof(GLfloat) * vASize);
-	for(int i = 0 ; i<vASize/3;i+=3){
-	result->normalArray[i] = 0.0f;
-	result->normalArray[i+1] = 1.0f;
-	result->normalArray[i+3] = 0.0f;
-}
+	for(int i = 0 ; i < vASize/3; i+=3){
+		result->normalArray[i] = 0.0f;
+		result->normalArray[i+1] = 1.0f;
+		result->normalArray[i+2] = 0.0f;
+	}
   result->texCoordArray = NULL;
 }
 
