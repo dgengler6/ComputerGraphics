@@ -10,7 +10,7 @@ uniform vec3 camera_look;
 void main(void)
 {
 	//out_Color = texture(texUnit, ex_TexCoord*2);
-	out_Color = plain_color;
+	//out_Color = plain_color;
 		vec3 n = ex_Normal;
 		float k_d = 0.5;
 		float k_spec = 0.2;

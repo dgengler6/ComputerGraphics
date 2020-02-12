@@ -171,6 +171,7 @@ void init(void)
 
 
 	// Load and compile shader
+	
 	pr_wb = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_wr = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_ww = loadShaders("lab3-1.vert","lab3-1.frag");
@@ -180,6 +181,7 @@ void init(void)
 	pr_b4 = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_g = loadShaders("lab3-1.vert","lab3-1.frag");
 	pr_sb = loadShaders("lab3-1.vert","lab3-1sb.frag");
+	
 
 
 	printError("init shader");
@@ -187,7 +189,7 @@ void init(void)
 	
 	
 
-	// Upload geometry to the GPU:
+	// Upload geometry to the GPU: + 	// Allocate and activate Vertex Array Object
 	buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
 	buffer_full_setup(wr, WR, "windmill/windmill-roof.obj", pr_wr);
 	buffer_full_setup(ww, WW, "windmill/windmill-walls.obj", pr_ww);
@@ -196,6 +198,7 @@ void init(void)
 	buffer_full_setup(b3, B3, "windmill/blade.obj", pr_b3);
 	buffer_full_setup(b4, B4, "windmill/blade.obj", pr_b4);
 	buffer_full_setup(sb, SB, "skybox.obj", pr_sb);
+	
 
 	//malloc Ground
 	g = malloc(sizeof(Model));
@@ -205,15 +208,14 @@ void init(void)
 
 
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
-
+    glGenBuffers(1, &projectionMatrixBufferObjID);
     // Load and bind the texture
     LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
     glBindTexture(GL_TEXTURE_2D, sbTexture);
     glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
     glActiveTexture(GL_TEXTURE0);
 
-	// Allocate and activate Vertex Array Object
-    glGenBuffers(1, &projectionMatrixBufferObjID);
+
 
 
 	// End of upload of geometry
@@ -274,7 +276,8 @@ void display(void)
 
 	// DRAW SKYBOX 
 
-	glDisable(GL_DEPTH_TEST);
+
+	
 
 	mat4 camUntranslated = camMatrix;
 	camUntranslated.m[3] = 0;
@@ -284,9 +287,13 @@ void display(void)
 	mat4 packedsb;
 	packed_transform(SetVector(0,0,0), SetVector(0,0,0), SetVector(1,1,1), &camUntranslated, &packedsb);
 	
-	glUniform3f(glGetUniformLocation(pr_sb, "camera_look"), 0.0f,0.0f,1.0f);
+	glUniform4f(glGetUniformLocation(pr_sb,"plain_color"),0.1f,0.1f,0.7f,1.0f);
+	glUniform3f(glGetUniformLocation(pr_sb, "camera_look"), look.x,look.y,look.z);
 	glUniformMatrix4fv(glGetUniformLocation(pr_sb, "pack_mat"), 1, GL_TRUE, packedsb.m);
 	glBindVertexArray(SBVertexArrayObjID);    // Select VAO
+
+	glDisable(GL_DEPTH_TEST);
+
 	glDrawElements(GL_TRIANGLES, sb->numIndices, GL_UNSIGNED_INT, 0L);
 
 	glEnable(GL_DEPTH_TEST);
@@ -301,6 +308,7 @@ void display(void)
 	glUniform3f(glGetUniformLocation(pr_b3, "camera_look"), look.x,look.y,look.z);
 	glUniform3f(glGetUniformLocation(pr_b4, "camera_look"), look.x,look.y,look.z);
 	glUniform3f(glGetUniformLocation(pr_g, "camera_look"), look.x,look.y,look.z);
+
  	glUniform4f(glGetUniformLocation(pr_wb,"plain_color"),0.5f,0.4f,0.0f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_wb, "pack_mat"), 1, GL_TRUE, packed.m);
 	glBindVertexArray(WBVertexArrayObjID);    // Select VAO
@@ -339,7 +347,7 @@ void display(void)
 	glUniform4f(glGetUniformLocation(pr_g,"plain_color"),0.2f,0.7f,0.2f,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr_g, "pack_mat"), 1, GL_TRUE, packedg.m);
 	glBindVertexArray(GVertexArrayObjID);
-	//glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
+	glDrawElements(GL_TRIANGLES, g->numIndices, GL_UNSIGNED_INT, 0L);
 
 	printError("display");
 
