@@ -4,11 +4,10 @@ in vec3 ex_Normal;
 in vec2 ex_TexCoord;
 out vec4 out_Color;
 uniform sampler2D texUnit;
-uniform vec4 plain_color;
-uniform vec3 camera_look;
 
 void main(void)
 {
+<<<<<<< HEAD
 	//out_Color = texture(texUnit, ex_TexCoord);
 	out_Color = plain_color;
 		vec3 n = ex_Normal;
@@ -28,4 +27,7 @@ void main(void)
 		float i_total = i_amb + i_diff + i_spec;
 		out_Color *= i_total;
 
+=======
+	out_Color = texture(texUnit, ex_TexCoord);
+>>>>>>> a405636cf4e85c09a1ee7732f3aa49dcf3a1ceb6
 }
