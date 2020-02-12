@@ -76,6 +76,7 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 
 		//Create the model based on .obj
 		#define buffer_full_setup(MODEL, NAME, MODEL_STRING, PROGRAM) \
+		glUseProgram(PROGRAM);\
 		buffer_object(NAME); \
 		MODEL=LoadModel(MODEL_STRING); \
 		glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
@@ -89,6 +90,7 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 
 		//Create the model based on user defined arrays
 		#define buffer_full_setup_homemade_boi_we_got_this(MODEL, NAME, VERTICES_ARRAY, V_SIZE, INDEXES_ARRAY, I_SIZE, PROGRAM) \
+		glUseProgram(PROGRAM);\
 		buffer_object(NAME); \
 		createModel(MODEL, VERTICES_ARRAY,V_SIZE, INDEXES_ARRAY, I_SIZE); \
 		glGenVertexArrays(1, &(NAME ## VertexArrayObjID)); \
@@ -189,14 +191,13 @@ void init(void)
 	pr_sb = loadShaders("lab3-1sb.vert","lab3-1sb.frag");
 
 
-	glUseProgram(pr_sb);
+	
 
 	printError("init shader");
 
 
 	// Upload geometry to the GPU:
-	// buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
-
+	buffer_full_setup(wb, WB, "windmill/windmill-balcony.obj", pr_wb);
 	buffer_full_setup(wr, WR, "windmill/windmill-roof.obj", pr_wr);
 	buffer_full_setup(ww, WW, "windmill/windmill-walls.obj", pr_ww);
 	buffer_full_setup(b1, B1, "windmill/blade.obj", pr_b1);
@@ -207,7 +208,7 @@ void init(void)
 	
 
 
-	LoadModelPlus("windmill/windmill-balcony.obj");
+	//LoadModelPlus("windmill/windmill-balcony.obj");
 
 	//malloc Ground
 	g = malloc(sizeof(Model));
@@ -218,11 +219,12 @@ void init(void)
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
     //glGenBuffers(1, &projectionMatrixBufferObjID);
     // Load and bind the texture
-
-  LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
-  glBindTexture(GL_TEXTURE_2D, sbTexture);
-  glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
-  //glActiveTexture(GL_TEXTURE0);
+	glUseProgram(pr_sb);
+	LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
+	glBindTexture(GL_TEXTURE_2D, sbTexture);
+	glUniform1i(glGetUniformLocation(pr_sb, "texUnit"), 0);
+	//glActiveTexture(GL_TEXTURE0);
+	glUseProgram(0);
 
 
 	printError("init arrays");
@@ -258,6 +260,7 @@ void display(void)
 	mat4 t_rot = Rx(t/1000);
 
 	//balcony
+
 	mat4 packed;
 	packed_transform(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1), &projectedCam, &packed);
 	// roof
@@ -279,7 +282,6 @@ void display(void)
 	//---------------------------------------//
 	//             DRAW SKYBOX               //
 	//---------------------------------------//
-	glUseProgram(pr_sb);
 	mat4 camUntranslated = camMatrix;
 	{ //SKYBOX COMPUTATIONS
 	camUntranslated.m[3] = 0;
@@ -295,8 +297,8 @@ void display(void)
 	//             DRAW ALL MODELS           //
 	//---------------------------------------//
 
-	glUseProgram(pr_wb);
-	{ // DRAW THERE
+	glUseProgram(0);
+	 // DRAW THERE
 	draw_object(look, SetVector(0.5,0.3,0.0), packed, WBVertexArrayObjID, pr_wb, wb);
 	draw_object(look, SetVector(1.0,0.0,0.0), packed1, WRVertexArrayObjID, pr_wr, wr);
 	draw_object(look, SetVector(1.0,1.0,1.0), packed2, WWVertexArrayObjID, pr_ww, ww);
@@ -305,7 +307,7 @@ void display(void)
 	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(2,projectedCam,t_rot), B3VertexArrayObjID, pr_b3, b3);
 	draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(3,projectedCam,t_rot), B4VertexArrayObjID, pr_b4, b4);
 	draw_object(look, SetVector(0.2,0.7,0.2), packedg, GVertexArrayObjID, pr_g, g);
-	}
+	
 
 
 	printError("display");
@@ -317,20 +319,22 @@ void display(void)
 
 void draw_skybox(mat4 mat, unsigned int id, GLuint pr, Model * m){
 	glDisable(GL_DEPTH_TEST);
-
+	glUseProgram(pr);
 	glUniformMatrix4fv(glGetUniformLocation(pr, "pack_mat"), 1, GL_TRUE, mat.m);
 	glBindVertexArray(id);    // Select VAO
 	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
-
+	glUseProgram(0);
 	glEnable(GL_DEPTH_TEST);
 }
 
 void draw_object(vec3 look, vec3 color, mat4 mat, unsigned int id, GLuint pr, Model * m){
+	glUseProgram(pr);
 	glUniform3f(glGetUniformLocation(pr, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(pr, "plain_color"), color.x, color.y, color.z,1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(pr, "pack_mat"), 1, GL_TRUE, mat.m);
 	glBindVertexArray(id);
 	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
+
 }
 
 
@@ -343,13 +347,14 @@ void OnTimer(int value)
 int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitContextVersion(3, 2);
+	glutDisplayFunc(display);
 	width = 400;
 	height = 400;
 	glutInitWindowSize(400, 400);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitContextVersion(3, 2);
 	glutCreateWindow ("Gotta Grind Dat Wheat !");
-	glutDisplayFunc(display);
+	
 
   init ();
 
@@ -398,6 +403,7 @@ void input_update(void){
 }
 
 void buffer_setup(char * in_shader, unsigned int buffer_object, const void * array, GLsizeiptr size , int dim, GLuint prog){
+	glUseProgram(prog);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_object);
 	glBufferData(GL_ARRAY_BUFFER, size*dim*sizeof(GLfloat), array, GL_STATIC_DRAW);
 	glVertexAttribPointer(glGetAttribLocation(prog, in_shader), dim, GL_FLOAT, GL_FALSE, 0, 0);
