@@ -12,10 +12,10 @@ void main(void)
 	//out_Color = texture(texUnit, ex_TexCoord*2);
 	out_Color = plain_color;
 		vec3 n = ex_Normal;
-		float k_d = 0.5;
-		float k_spec = 0.2;
+		float k_d = 0;
+		float k_spec = 0;
 
-		float i_a = 0.2;
+		float i_a = 1;
 		vec3 light_1 = normalize(vec3(-1,0.5,-1));
 		float i_1 = 1;
 
