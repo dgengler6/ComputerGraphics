@@ -200,6 +200,7 @@ void init(void)
 
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
 
+	glUseProgram(shader2); //Seems not needed
     // Load and bind the texture
   LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
   glBindTexture(GL_TEXTURE_2D, sbTexture);
@@ -208,7 +209,6 @@ void init(void)
 
 	printError("init arrays");
 }
-
 
 void display(void)
 {
@@ -321,12 +321,12 @@ void camera_movement(float alpha, float beta){
 }
 
 void draw_skybox(mat4 mat, GLuint shader, Model * m){
-	glDisable(GL_DEPTH_TEST);
 	glUseProgram(shader);
+	glDisable(GL_DEPTH_TEST);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "pack_mat"), 1, GL_TRUE, mat.m);
 	glDrawElements(GL_TRIANGLES, m->numIndices, GL_UNSIGNED_INT, 0L);
 	DrawModel(m, shader, "in_Position", "in_Normal", "in_TexCoord");
-
+	glUseProgram(0);
 	glEnable(GL_DEPTH_TEST);
 }
 
