@@ -30,7 +30,7 @@ typedef struct material {
 	float k_d;   //Diffuse
 	float k_spec;//Specular
 	float ex;
-	vec3 color;
+	vec4 color;
 } material;
 
 // FUnction headers
@@ -43,7 +43,7 @@ mat4 model_to_proj(const vec3 t, const vec3 r, const vec3 s, mat4 * projectedCam
 
 void camera_movement(float alpha, float beta);
 void draw_object(vec3 look, vec3 color, mat4 mat, GLuint shader, Model * m);
-void draw_object1(GLuint shader, Model * m, material mater, mat4 mw);
+void draw_object1(GLuint shader, Model * m, material mater, vec4 color, bool is_textured, mat4 mw);
 void draw_skybox(mat4 mat, GLuint shader, Model * m);
 
 void input_update(void);
@@ -76,6 +76,7 @@ GLuint shader1, shader2;
 // Model and Textures
 Model * wb, * wr, * ww, * b,* g, * sb, * r;
 GLuint sbTexture;
+GLuint tex1, tex2, tex3;
 
 mat4 projectionMatrix;
 
@@ -96,12 +97,12 @@ vec3 p; //= SetVector(15,10,15); // Camera position
 vec3 l; //= SetVector(0,5,0); // Look-at point
 vec3 v; //= SetVector(0,1,0); //Up vector
 
-material wood = 			{0.4f, 0.3f, 50.0f, {0.5,0.3,0.0}};
-material blade_wood = {0.5f, 0.4f, 60.0f, {0.5,0.4,0.0}};
-material stone = 			{0.6f, 0.05f, 20.0f, {1.0,1.0,1.0}};
-material brick = 			{0.5f, 0.1f, 20.0f, {1.0,0.0,0.0}};
-material ground = 		{0.6f, 0.0f, 10.0f, {0.2,0.7,0.2}};
-material metal =      {0.3f, 1.0f, 20.0f, {0.7,0.7,0.7}};
+material wood = 			{0.4f, 0.3f, 50.0f, {0.5,0.3,0.0,1}};
+material blade_wood = {0.5f, 0.4f, 60.0f, {0.5,0.4,0.0,1}};
+material stone = 			{0.6f, 0.05f, 20.0f, {1.0,1.0,1.0,1}};
+material brick = 			{0.5f, 0.1f, 20.0f, {1.0,0.0,0.0,1}};
+material ground = 		{0.6f, 0.0f, 10.0f, {0.2,0.7,0.2,1}};
+material metal =      {0.3f, 1.0f, 20.0f, {0.7,0.7,0.7,1}};
 //Ground polygon
 
 GLfloat groundVertices[] =
@@ -114,38 +115,30 @@ GLfloat groundVertices[] =
 
 #define light_nb 3
 
-vec4 dir_lights[] = {
-	{1,0,1,1},
-	{1,0,0,0.5},
-	{0,1,0,0.5}
-};
-
 
 vec4 ambient = {1,1,1,0.7 }; //{RGB,I}
 
-GLfloat lights[3 * light_nb];
-
 GLuint groundIndex[] = {0,1,2, 1,2,3};
 
-vec3 lightSourcesColorsArr[] = { {1.0f, 0.0f, 0.0f}, // Red light
+// -------------- LIGHTS ----------------- //
 
-                                 {0.0f, 1.0f, 0.0f}, // Green light
+GLfloat light_colors[] = { 1, 0, 0, // Red light
+                                 0, 1, 0, // Green light
+                                 0, 0, 1, // Blue light
+                                 1, 1, 1}; // White light
 
-                                 {0.0f, 0.0f, 1.0f}, // Blue light
-
-                                 {1.0f, 1.0f, 1.0f} }; // White light
-
-GLint isDirectional[] = {0,0,1,1};
+GLint is_directional[] = {0,0,1,1};
 
 
-vec3 lightSourcesDirectionsPositions[] = { {10.0f, 5.0f, 0.0f}, // Red light, positional
+GLfloat light_vecs[] = { 10, 5, 0, // Red light, positional
+                        0,5,10 , // Green light, positional
+                        -1,0,0, // Blue light along X
+                        0,0,1 }; // White light along Z
 
-                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
-
-                                       {-1.0f, 0.0f, 0.0f}, // Blue light along X
-
-                                       {0.0f, 0.0f, -1.0f} }; // White light along Z
-
+GLfloat light_int_att[] = { 1, 10,
+														1, 5,
+														1, 50,
+													  1, 25 };
 
 void init(void)
 {
@@ -160,29 +153,19 @@ void init(void)
 	l = SetVector(0,5,0); // Look-at point
 	v = SetVector(0,1,0);
 
-	for (int i = 0; i < light_nb; i++) {
-			vec3 l = SetVector(dir_lights[i].x, dir_lights[i].y, dir_lights[i].z);
-			vec3 temp = ScalarMult(Normalize(l), dir_lights[i].w);
-			lights[3*i]   = temp.x;
-			lights[3*i+1] = temp.y;
-			lights[3*i+2] = temp.z;
-	}
-
-
-
 	dumpInfo();
 
 	// GL inits
 	glClearColor(1,0.2,1,0);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	printError("GL inits");
 
 
 	// Load and compile shader
-	shader1 = loadShaders("light_colored.vert","light_colored.frag");
+	shader1 = loadShaders("all.vert","all.frag");
 	shader2 = loadShaders("lab3-1sb.vert","lab3-1sb.frag");
 
 	printError("init shader");
@@ -200,14 +183,29 @@ void init(void)
 
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
 
-	glUseProgram(shader2); //Seems not needed
+	glUseProgram(shader2);
     // Load and bind the texture
   LoadTGATextureSimple("SkyBox512.tga", &sbTexture);
   glBindTexture(GL_TEXTURE_2D, sbTexture);
   glUniform1i(glGetUniformLocation(shader2, "texUnit"), 0);
-  glActiveTexture(GL_TEXTURE0);
+  //glActiveTexture(GL_TEXTURE0);
+
+	glUseProgram(shader1);
+
+	LoadTGATextureSimple("SkyBox512.tga", &tex1);
+  glBindTexture(GL_TEXTURE_2D, tex1);
+  glUniform1i(glGetUniformLocation(shader1, "tex"), 0);
+  //glActiveTexture(GL_TEXTURE0);
 
 	printError("init arrays");
+}
+
+static void draw_object2(GLuint shader, Model * m, material mater, bool is_textured, mat4 mw){
+	draw_object1(shader, m, mater, mater.color, is_textured, mw);
+}
+
+static void draw_object3(GLuint shader, Model * m, material mater, mat4 mw){
+	draw_object2(shader, m, mater, false, mw);
 }
 
 void display(void)
@@ -264,28 +262,14 @@ void display(void)
 	//             DRAW ALL MODELS           //
 	//---------------------------------------//
 
-	// draw_object(look, SetVector(0.5,0.3,0.0), packed, shader1, wb);
-	// draw_object(look, SetVector(1.0,0.0,0.0), packed1, shader1, wr);
-	// draw_object(look, SetVector(1.0,1.0,1.0), packed2, shader1, ww);
-	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(0,projectedCam,t_rot), shader1, b);
-	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(1,projectedCam,t_rot), shader1, b);
-	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(2,projectedCam,t_rot), shader1, b);
-	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(3,projectedCam,t_rot), shader1, b);
-	// draw_object(look, SetVector(0.2,0.7,0.2), packedg, shader1, g);
-
-	// draw_object1(shader1, wb, wood, wb_mw);
-	draw_object1(shader1, wb, metal, wb_mw);
-	draw_object1(shader1, wr, brick, wr_mw);
-	draw_object1(shader1, ww, stone, ww_mw);
-	// draw_object1(shader1, b, blade_wood, b1_mw);
-	// draw_object1(shader1, b, blade_wood, b2_mw);
-	// draw_object1(shader1, b, blade_wood, b3_mw);
-	// draw_object1(shader1, b, blade_wood, b4_mw);
-	draw_object1(shader1, b, metal, b1_mw);
-	draw_object1(shader1, b, metal, b2_mw);
-	draw_object1(shader1, b, metal, b3_mw);
-	draw_object1(shader1, b, metal, b4_mw);
-	draw_object1(shader1, g, ground, g_mw);
+	draw_object3(shader1, wb, metal, wb_mw);
+	draw_object3(shader1, wr, brick, wr_mw);
+	draw_object3(shader1, ww, stone, ww_mw);
+	draw_object3(shader1, b, metal, b1_mw);
+	draw_object3(shader1, b, metal, b2_mw);
+	draw_object3(shader1, b, metal, b3_mw);
+	draw_object3(shader1, b, metal, b4_mw);
+	draw_object3(shader1, g, ground, g_mw);
 
 	mat4 r_mw;
 	material lapinoux;
@@ -294,10 +278,10 @@ void display(void)
 	lapinoux.k_spec= 0.1f;
 	for(int i = 0; i< 8;i++){
 		r_mw = Mult(Ry(i*M_PI_4 - t/1000),T(8 + sin(t/1000),2+sin(t/100 + i),0));
-		lapinoux.color = SetVector(0.5,0.1*i,0.1);
-		draw_object1(shader1, r, lapinoux, r_mw);
+		lapinoux.color = (vec4) {0.5,0.1*i,0.1,1.0f};
+		draw_object3(shader1, r, lapinoux, r_mw);
 	}
-	
+
 
 	printError("display");
 
@@ -338,20 +322,24 @@ void draw_object(vec3 look, vec3 color, mat4 mat, GLuint shader, Model * m){
 	DrawModel(m, shader, "in_Position", "in_Normal", "in_TexCoord");
 }
 
-void draw_object1(GLuint shader, Model * m, material mater, mat4 mw){
+void draw_object1(GLuint shader, Model * m, material mater, vec4 color, bool is_textured, mat4 mw){
 	glUseProgram(shader);
 	glUniform1f(glGetUniformLocation(shader, "m.k_d"), mater.k_d);
 	glUniform1f(glGetUniformLocation(shader, "m.k_spec"), mater.k_spec);
 	glUniform1f(glGetUniformLocation(shader, "m.ex"), mater.ex);
-	glUniform4f(glGetUniformLocation(shader, "m.color"), mater.color.x,mater.color.y,mater.color.z, 1);
-	glUniform4f(glGetUniformLocation(shader, "ambient"), ambient.x,ambient.y,ambient.z, ambient.w);
+	glUniform4f(glGetUniformLocation(shader, "m.color"), color.x, color.y, color.z, color.w);
 
 	glUniform1i(glGetUniformLocation(shader, "count"), light_nb);
-	glUniform3fv(glGetUniformLocation(shader, "lights"), 3 * light_nb, lights);
+	glUniform1i(glGetUniformLocation(shader, "is_textured"), is_textured);
+	glUniform3fv(glGetUniformLocation(shader, "light_vecs"), 3 * light_nb, light_vecs); //lights_vec
+	glUniform3fv(glGetUniformLocation(shader, "light_colors"), 3 * light_nb, light_colors); //lights_colors
+	glUniform1iv(glGetUniformLocation(shader, "is_directional"), light_nb, is_directional); //light_directional
+	glUniform2fv(glGetUniformLocation(shader, "light_int_att"), 2 * light_nb, light_int_att); //light_attenuations
+
 	glUniformMatrix4fv(glGetUniformLocation(shader, "mw"), 1, GL_TRUE, mw.m);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "wv"), 1, GL_TRUE, camMatrix.m);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "vp"), 1, GL_TRUE, projectionMatrix.m);
-	DrawModel(m, shader, "in_Position", "in_Normal", NULL);
+	DrawModel(m, shader, "in_Position", "in_Normal", "in_TexCoord");
 }
 
 void OnTimer(int value)
