@@ -74,7 +74,7 @@ mat4 Mat4(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3,
 GLuint shader1, shader2;
 
 // Model and Textures
-Model * wb, * wr, * ww, * b,* g, * sb;
+Model * wb, * wr, * ww, * b,* g, * sb, * r;
 GLuint sbTexture;
 
 mat4 projectionMatrix;
@@ -120,11 +120,31 @@ vec4 dir_lights[] = {
 	{0,1,0,0.5}
 };
 
-vec4 ambient = {1,1,1,0.7}; //{RGB,I}
+
+vec4 ambient = {1,1,1,0.7 }; //{RGB,I}
 
 GLfloat lights[3 * light_nb];
 
 GLuint groundIndex[] = {0,1,2, 1,2,3};
+
+vec3 lightSourcesColorsArr[] = { {1.0f, 0.0f, 0.0f}, // Red light
+
+                                 {0.0f, 1.0f, 0.0f}, // Green light
+
+                                 {0.0f, 0.0f, 1.0f}, // Blue light
+
+                                 {1.0f, 1.0f, 1.0f} }; // White light
+
+GLint isDirectional[] = {0,0,1,1};
+
+
+vec3 lightSourcesDirectionsPositions[] = { {10.0f, 5.0f, 0.0f}, // Red light, positional
+
+                                       {0.0f, 5.0f, 10.0f}, // Green light, positional
+
+                                       {-1.0f, 0.0f, 0.0f}, // Blue light along X
+
+                                       {0.0f, 0.0f, -1.0f} }; // White light along Z
 
 
 void init(void)
@@ -174,7 +194,9 @@ void init(void)
 	ww = LoadModelPlus("windmill/windmill-walls.obj");
 	b = LoadModelPlus("windmill/blade.obj");
 	sb = LoadModelPlus("skybox.obj");
+	r = LoadModelPlus("bunny.obj");
 	g = LoadDataToModel(groundVertices, NULL, NULL, NULL, groundIndex, 3*4, 3*2);
+
 
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
 
@@ -264,6 +286,18 @@ void display(void)
 	draw_object1(shader1, b, metal, b3_mw);
 	draw_object1(shader1, b, metal, b4_mw);
 	draw_object1(shader1, g, ground, g_mw);
+
+	mat4 r_mw;
+	material lapinoux;
+	lapinoux.ex = 20.0f;
+	lapinoux.k_d = 0.5;
+	lapinoux.k_spec= 0.1f;
+	for(int i = 0; i< 8;i++){
+		r_mw = Mult(Ry(i*M_PI_4 - t/1000),T(8 + sin(t/1000),2+sin(t/100 + i),0));
+		lapinoux.color = SetVector(0.5,0.1*i,0.1);
+		draw_object1(shader1, r, lapinoux, r_mw);
+	}
+	
 
 	printError("display");
 

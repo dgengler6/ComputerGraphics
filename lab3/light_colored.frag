@@ -25,7 +25,7 @@ void main(void)
 	float i_diff = 0;
 	float i_spec = 0;
 
-	for (int i = 0; i < 1; i++){
+	for (int i = 0; i < count; i++){
 		vec3 light = mat3(wv) * lights[i];
 		i_diff += max(dot(light, n),0);
 		//i_diff += dot(light, n);

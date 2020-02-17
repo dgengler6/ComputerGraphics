@@ -26,6 +26,6 @@ void main(void)
 		float i_spec = k_spec * i_1 * pow(cos_phi, alpha);
 
 		float i_total = i_amb + i_diff + i_spec;
-		out_Color *= i_total;
+		 out_Color *= i_total;
 
 }
