@@ -21,7 +21,7 @@ uniform mat4 wv;
 void main(void)
 {
 	vec3 n = normalize(ex_Normal);
-	out_Color = m.color * vec4(ambient.xyz, 1.0);
+	out_Color = m.color * vec4(ambient.xyz, 0.5);
 	float i_diff = 0;
 	float i_spec = 0;
 

@@ -137,7 +137,6 @@ vec3 lightSourcesColorsArr[] = { {1.0f, 0.0f, 0.0f}, // Red light
 
 GLint isDirectional[] = {0,0,1,1};
 
-
 vec3 lightSourcesDirectionsPositions[] = { {10.0f, 5.0f, 0.0f}, // Red light, positional
 
                                        {0.0f, 5.0f, 10.0f}, // Green light, positional
@@ -176,8 +175,8 @@ void init(void)
 	glClearColor(1,0.2,1,0);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	printError("GL inits");
 
 
@@ -272,7 +271,16 @@ void display(void)
 	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(2,projectedCam,t_rot), shader1, b);
 	// draw_object(look, SetVector(0.5,0.4,0.0), bladeMatrix(3,projectedCam,t_rot), shader1, b);
 	// draw_object(look, SetVector(0.2,0.7,0.2), packedg, shader1, g);
-
+	mat4 r_mw;
+	material lapinoux;
+	lapinoux.ex = 20.0f;
+	lapinoux.k_d = 0.5;
+	lapinoux.k_spec= 0.1f;
+	for(int i = 0; i< 8;i++){
+		r_mw = Mult(Ry(i*M_PI_4 - t/1000),T(8 + sin(t/1000),2+sin(t/100 + i),0));
+		lapinoux.color = SetVector(0.5,0.1*i,0.1);
+		draw_object1(shader1, r, lapinoux, r_mw);
+	}
 	// draw_object1(shader1, wb, wood, wb_mw);
 	draw_object1(shader1, wb, metal, wb_mw);
 	draw_object1(shader1, wr, brick, wr_mw);
@@ -287,16 +295,7 @@ void display(void)
 	draw_object1(shader1, b, metal, b4_mw);
 	draw_object1(shader1, g, ground, g_mw);
 
-	mat4 r_mw;
-	material lapinoux;
-	lapinoux.ex = 20.0f;
-	lapinoux.k_d = 0.5;
-	lapinoux.k_spec= 0.1f;
-	for(int i = 0; i< 8;i++){
-		r_mw = Mult(Ry(i*M_PI_4 - t/1000),T(8 + sin(t/1000),2+sin(t/100 + i),0));
-		lapinoux.color = SetVector(0.5,0.1*i,0.1);
-		draw_object1(shader1, r, lapinoux, r_mw);
-	}
+	
 	
 
 	printError("display");
