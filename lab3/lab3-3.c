@@ -101,7 +101,7 @@ material wood = 			{0.4f, 0.3f, 50.0f, {0.5,0.3,0.0,1}};
 material blade_wood = {0.5f, 0.4f, 60.0f, {0.5,0.4,0.0,1}};
 material stone = 			{0.6f, 0.05f, 20.0f, {1.0,1.0,1.0,1}};
 material brick = 			{0.5f, 0.1f, 20.0f, {1.0,0.0,0.0,1}};
-material ground = 		{0.6f, 0.0f, 10.0f, {0.2,0.7,0.2,1}};
+material ground = 		{1.0f, 0.2f, 10.0f, {0.2,0.7,0.2,1}};
 material metal =      {0.3f, 1.0f, 20.0f, {0.7,0.7,0.7,1}};
 //Ground polygon
 
@@ -113,16 +113,23 @@ GLfloat groundVertices[] =
   -50.0f,0.0f,-50.0f
 };
 
-#define light_nb 3
+GLfloat groundNormals[] =
+{
+	0,1,0,
+  0,1,0
+};
+
+#define light_nb 4
 
 
 vec4 ambient = {1,1,1,0.7 }; //{RGB,I}
 
-GLuint groundIndex[] = {0,1,2, 1,2,3};
+GLuint groundIndex[] = {0,1,2,
+												1,2,3};
 
 // -------------- LIGHTS ----------------- //
 
-GLfloat light_colors[] = { 1, 0, 0, // Red light
+GLfloat light_colors[] = { 1, 1, 1, // Red light
                                  0, 1, 0, // Green light
                                  0, 0, 1, // Blue light
                                  1, 1, 1}; // White light
@@ -130,15 +137,15 @@ GLfloat light_colors[] = { 1, 0, 0, // Red light
 GLint is_directional[] = {0,0,1,1};
 
 
-GLfloat light_vecs[] = { 10, 5, 0, // Red light, positional
-                        0,5,10 , // Green light, positional
+GLfloat light_vecs[] = { 0, -4, 10, // Red light, positional
+                        10, -5, 0 , // Green light, positional
                         -1,0,0, // Blue light along X
-                        0,0,1 }; // White light along Z
+                        0, -1, 1}; // White light along Z
 
-GLfloat light_int_att[] = { 1, 10,
+GLfloat light_int_att[] = { 2, 15,
 														1, 5,
 														1, 50,
-													  1, 25 };
+													  0.4, 25 };
 
 void init(void)
 {
@@ -178,7 +185,7 @@ void init(void)
 	b = LoadModelPlus("windmill/blade.obj");
 	sb = LoadModelPlus("skybox.obj");
 	r = LoadModelPlus("bunny.obj");
-	g = LoadDataToModel(groundVertices, NULL, NULL, NULL, groundIndex, 3*4, 3*2);
+	g = LoadDataToModel(groundVertices, groundNormals, NULL, NULL, groundIndex, 3*4, 3*2);
 
 
 	projectionMatrix = frustum(left, right, bottom, top, near, far);
@@ -283,6 +290,12 @@ void display(void)
 		draw_object3(shader1, r, lapinoux, r_mw);
 	}
 
+	lapinoux.color = (vec4) {1,0,0,1};
+	draw_object3(shader1, r, lapinoux, T(10,1,0));
+	lapinoux.color = (vec4) {0,1,0,1};
+	draw_object3(shader1, r, lapinoux, T(0,11,0));
+	lapinoux.color = (vec4) {0,0,1,1};
+	draw_object3(shader1, r, lapinoux, T(0,1,10));
 
 	printError("display");
 
@@ -297,9 +310,9 @@ void camera_movement(float alpha, float beta){
 		direction = ScalarMult(Normalize(direction), actual_speed);
 
 	mat4 look_mat = Mult(Rx(beta), Ry(alpha));
-	look = MultVec3(Transpose(look_mat), SetVector(0,0,1));
+	look = MultVec3(InvertMat4(look_mat), SetVector(0,0,1));
 
-	direction = MultVec3(Transpose(look_mat), direction);
+	direction = MultVec3(InvertMat4(look_mat), direction);
 	p = VectorSub(p, direction);
 
 	camMatrix = Mult(look_mat, T(-p.x, -p.y, -p.z));
@@ -320,7 +333,7 @@ void draw_object(vec3 look, vec3 color, mat4 mat, GLuint shader, Model * m){
 	glUniform3f(glGetUniformLocation(shader, "camera_look"), look.x,look.y,look.z);
 	glUniform4f(glGetUniformLocation(shader, "plain_color"), color.x, color.y, color.z, 1.0f);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "pack_mat"), 1, GL_TRUE, mat.m);
-	DrawModel(m, shader, "in_Position", "in_Normal", "in_TexCoord");
+	DrawModel(m, shader, "in_Position", NULL, "in_TexCoord");
 }
 
 void draw_object1(GLuint shader, Model * m, material mater, vec4 color, bool is_textured, mat4 mw){
