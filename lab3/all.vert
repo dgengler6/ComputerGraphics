@@ -21,6 +21,6 @@ void main(void)
 	gl_Position = vp * wv * mw * vec4(in_Position, 1.0);
   ex_Normal = normalize(inverse(transpose(mat3(mv))) * in_Normal);
 	ex_Surface = normalize(vec3(mv * vec4(in_Position, 1.0)));
-	ex_Pos = mv * vec4(in_Position,1);
+	ex_Pos = mw * vec4(in_Position,1);
 	ex_TexCoord = in_TexCoord;
 }

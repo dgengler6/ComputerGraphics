@@ -10,7 +10,7 @@ struct material{
 in vec3 ex_Normal;
 in vec3 ex_Surface;
 in vec2 ex_TexCoord;
-in vec4 ex_Pos;
+in vec3 ex_Pos;
 
 out vec4 out_Color;
 
@@ -30,58 +30,56 @@ uniform mat4 wv;
 
 uniform ivec3 debug;
 
+vec3 n = normalize(ex_Normal);
+vec3 view_direction = normalize(vec3(inverse(wv) * vec4(0.0, 0.0, 0.0, 1.0) - vec4(ex_Pos,1)));
+
+float shade(int i);
+float shade_debug(vec3 vec, bool is_directional, float k_d, float k_spec, float ex, float intens, float attenu);
+
 void main(void)
-{
+	{
+	out_Color = m.color;
 	vec3 d = debug.xyz / 4;
-	int i = 0;
 
-	vec3 n = normalize(ex_Normal);
+	vec3 light_result = vec3(0);
 
-	vec4 point = vec4(d.x,d.y,d.z,1);
-	//vec4 point2 = point + vec4(0,0,3,1);
+	for (int i = -1; i < count; i++){
+		float i_total;
+		if (i == -1)
+			i_total = shade_debug(vec3(d.x,d.y,d.z), false, m.k_d, m.k_spec, m.ex, 1.3, 100);
+		else
+			i_total = shade(i);
 
-	vec3 seg = vec3(point);
-		//vec3 seg2 = vec3(point2);
-		
-		seg = mat3(wv) * vec3(mw * ex_Pos - point);
+		light_result += clamp(vec3(i_total) * ((i == -1) ? vec3(1,1,1) : light_colors[i]), 0, 1);
+	}
+	out_Color *= vec4(clamp(light_result, 0, 1), 1);
+}
 
+float shade(int i){
+	return shade_debug(light_vecs[i], is_directional[i], m.k_d, m.k_spec, m.ex, light_int_att[i].x, light_int_att[i].y);
+}
 
-//		seg2 = mat3(wv) * vec3(mw * ex_Pos - point2);
+float shade_debug(vec3 vec, bool is_directional, float k_d, float k_spec, float ex, float intens, float attenu){
+		vec3 light = vec;
 
-		//vec3(ex_Pos - point);   <=>   //vec3(ex_Pos) - vec3(point);
+		float fact = intens;
 
-		//mat3(mw) * vec3(ex_Pos) - vec3(point);    <XXXXX>		//vec3(mw * ex_Pos) - vec3(point); //BETTER
-		//vec3(mw * ex_Pos - point) <=> vec3(mw * ex_Pos) - vec3(point)
+		if (!is_directional) {
+			light = ex_Pos - light;
+			float dist = length(light);
+			if (dist > attenu) fact *= attenu / dist ;
+	}
 
-		//vec3(wv * mw * ex_Pos - point) <XXXXX> mat3(wv) * vec3(mw * ex_Pos - point)
-		//vec3(mw * ex_Pos - point) <=> mat3(wv) * vec3(mw * ex_Pos - point) BUT NO WITH I_DIFF
+	light = - normalize(mat3(wv) * light);
 
+	float i_diff = max(dot(light, n),0); //MAX 1
 
-//	float dist2 = length(seg2);
+	float cos_phi = max(dot(reflect(-light, n), view_direction), 0); //MAX 1
+	float i_spec = 1.0 * pow(cos_phi, ex);
 
-	float i_diff = max(dot(n, -normalize(seg)), 0);
-
-	float dist = length(seg);
-//	float i_diff2 = max(dot(n, normalize(seg2)), 0);
-
-	//vec3(mw * ex_Pos - point) <XXXXXX> mat3(wv) * vec3(mw * ex_Pos - point)
-
-
-  //out_Color = vec4(vec3(20 / dist * i_diff), 1);
-
-	out_Color = vec4(vec3(i_diff), 1);
-
-	if (dist > 10) out_Color *= vec4(vec3(10/dist),1);
-
-	// if (gl_FrontFacing) // is the fragment part of a front face?
-	// 		{
-	// 			out_Color = vec4(1,0,0,1);
-	// 		}
-	// 	else // fragment is part of a back face
-	// 		{
-	// 			out_Color = vec4(0,0,1,1);
-	// 	 }
-
-	//out_Color *= vec4(i_diff,0,0,1);
-	//out_Color *= vec4(0,0,i_diff2,1);
+	float i_total = 0;
+	i_total += k_d * i_diff;
+	i_total += k_spec * i_spec;
+	i_total = clamp(i_total * fact, 0, 1);
+	return i_total;
 }

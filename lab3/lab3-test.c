@@ -126,14 +126,14 @@ GLfloat groundNormals[] =
 #define light_nb 4
 
 
-vec4 ambient = {1,1,1,0.7 }; //{RGB,I}
+vec4 ambient = {1,1,1,0.7}; //{RGB,I}
 
 GLuint groundIndex[] = {1,0,2,
 												1,2,3};
 
 // -------------- LIGHTS ----------------- //
 
-GLfloat light_colors[] = { 1, 1, 1, // Red light
+GLfloat light_colors[] = {1, 0, 0, // Red light
                                  0, 1, 0, // Green light
                                  0, 0, 1, // Blue light
                                  1, 1, 1}; // White light
@@ -141,15 +141,15 @@ GLfloat light_colors[] = { 1, 1, 1, // Red light
 GLint is_directional[] = {0,0,1,1};
 
 
-GLfloat light_vecs[] = { 0, -4, 10, // Red light, positional
-                        10, -5, 0 , // Green light, positional
+GLfloat light_vecs[] = { 0, 4, 10, // Red light, positional
+                        10, 5, 0 , // Green light, positional
                         -1,0,0, // Blue light along X
                         0, -1, 1}; // White light along Z
 
-GLfloat light_int_att[] = { 2, 15,
-														1, 5,
-														1, 50,
-													  0.4, 25 };
+GLfloat light_int_att[] = { 1, 10,
+														1, 10,
+														1, 10,
+													  1, 10 };
 
 void init(void)
 {
@@ -241,11 +241,11 @@ void display(void)
 	//balcony
 	mat4 wb_mw = model_to_world(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1));
 	// roof
-	mat4 wr_mw = model_to_world(SetVector(0,0.4,0), SetVector(0,0,0), SetVector(1,1,1));
+	mat4 wr_mw = model_to_world(SetVector(0,0.3,0), SetVector(0,0,0), SetVector(1,1,1));
 	// walls
 	mat4 ww_mw = model_to_world(SetVector(0,0,0), SetVector(0,M_PI,0), SetVector(1,1,1));
 	// ground
-	mat4 g_mw = model_to_world(SetVector(0,-10,0), SetVector(0,0,0), SetVector(10,10,10));
+	mat4 g_mw = model_to_world(SetVector(0,-15.8,0), SetVector(0,0,M_PI/20), SetVector(20,20,20));
 
 	mat4 b1_mw = bladeMatrix(0 , IdentityMatrix(), t_rot);
 	mat4 b2_mw = bladeMatrix(1 , IdentityMatrix(), t_rot);
