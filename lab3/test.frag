@@ -60,11 +60,11 @@ float shade(int i){
 }
 
 float shade_debug(vec3 vec, bool is_directional, float k_d, float k_spec, float ex, float intens, float attenu){
-		vec3 light = vec;
+	vec3 light = vec;
 
-		float fact = intens;
+	float fact = intens;
 
-		if (!is_directional) {
+	if (!is_directional) {
 			light = ex_Pos - light;
 			float dist = length(light);
 			if (dist > attenu) fact *= attenu / dist ;
