@@ -53,6 +53,22 @@ bool check_border(int index, int width){
 	return (index >=0 && ((index + 1) % width)!=0 )|| index == 0;
 }
 
+vec3 get_vec_from_array(int x, int z, Model* terrain){
+    int index = (x + z + sqrt(terrain->numVertices))*3;
+    return SetVector(terrain->vertexArray[index],terrain->vertexArray[index+1],terrain->vertexArray[index+2]);
+}
+
+bool find_height(float x, float z, Model* terrain){
+    int xf = (int)(floor(x));
+    int xc = (int)(ceil(x));
+    int zf = (int)(floor(z));
+    int zc = (int)(ceil(z));
+    printf("Yo");
+    vec3 yeet = get_vec_from_array(xf,zf,terrain); 
+    printf("%f",yeet.x);
+
+}
+
 Model* GenerateTerrain(TextureData *tex)
 {
 
@@ -332,6 +348,9 @@ void input_update(void){
 
 		if (glutKeyIsDown(UPKEY))
 			direction.y -= 1;
+
+        if (glutKeyIsDown(UPKEY))
+            find_height(1.2,3.4,tm);
 	}
 	if (glutKeyIsDown('o'))
 		actual_speed *= 2;

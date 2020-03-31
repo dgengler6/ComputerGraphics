@@ -11,7 +11,7 @@ OSSUF =m
 UNAME=Mac
 endif
 
-OBJS = lab4-1 lab4-2
+OBJS = lab4-1 lab4-2 lab4-4
 
 all:
 	@$(MAKE) $(OBJS)
