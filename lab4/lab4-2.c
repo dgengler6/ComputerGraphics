@@ -1,9 +1,25 @@
 // Lab 4, terrain generation
 
 #ifdef __APPLE__
+	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
 	// Linking hint for Lightweight IDE
 	// uses framework Cocoa
+	#define RIGHTKEY 'd'
+	#define LEFTKEY 'q'
+	#define DOWNKEY 'a'
+	#define UPKEY 'e'
+	#define FORWARDKEY 'z'
+	#define BACKKEY 's'
+#else
+	#define RIGHTKEY 'd'
+	#define LEFTKEY 'a'
+	#define DOWNKEY 'q'
+	#define UPKEY 'e'
+	#define FORWARDKEY 'w'
+	#define BACKKEY 's'
+
+
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
@@ -12,16 +28,38 @@
 #include "LoadTGA.h"
 
 mat4 projectionMatrix;
+mat4 camMatrix;
+
+int mouse_x, mouse_y;
+int last_mouse_x, last_mouse_y;
+
+vec3 direction; vec3 look;
+GLfloat speed;
+GLfloat actual_speed;
+
+int x = 0;
+int y = 0;
+int z = 0;
+
+vec3 p;
+
+int width, height;
+
+void mouse_motion (int x, int y);
+void input_update(void);
+void camera_movement(float alpha, float beta);
+
 
 Model* GenerateTerrain(TextureData *tex)
 {
+
 	int vertexCount = tex->width * tex->height;
 	int triangleCount = (tex->width-1) * (tex->height-1) * 2;
 	int x, z;
-
 	GLfloat *vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *texCoordArray = malloc(sizeof(GLfloat) * 2 * vertexCount);
+	GLfloat *normalTriangleArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
 
 	printf("bpp %d\n", tex->bpp);
@@ -43,15 +81,53 @@ Model* GenerateTerrain(TextureData *tex)
 	for (x = 0; x < tex->width-1; x++)
 		for (z = 0; z < tex->height-1; z++)
 		{
+
+			int top_left = x + z * tex->width;
+			int bot_left = x + (z+1) * tex->width;
+			int top_right = x+1 + z * tex->width;
+			int bot_right = x+1 + (z+1) * tex->width;
+
+			int index = (x + z * (tex->width-1))*6;
+
 		// Triangle 1
-			indexArray[(x + z * (tex->width-1))*6 + 0] = x + z * tex->width;
-			indexArray[(x + z * (tex->width-1))*6 + 1] = x + (z+1) * tex->width;
-			indexArray[(x + z * (tex->width-1))*6 + 2] = x+1 + z * tex->width;
+			indexArray[index + 0] = top_left;
+			indexArray[index + 1] = bot_left;
+			indexArray[index + 2] = top_right;
+
 		// Triangle 2
-			indexArray[(x + z * (tex->width-1))*6 + 3] = x+1 + z * tex->width;
-			indexArray[(x + z * (tex->width-1))*6 + 4] = x + (z+1) * tex->width;
-			indexArray[(x + z * (tex->width-1))*6 + 5] = x+1 + (z+1) * tex->width;
+			indexArray[index + 3] = top_right;
+			indexArray[index + 4] = bot_left;
+			indexArray[index + 5] = bot_right;
+
+
+			vec3 v1 = SetVector(vertexArray[top_left*3], vertexArray[top_left*3 + 1], vertexArray[top_left*3 + 2]);
+			vec3 v2 = SetVector(vertexArray[bot_left*3], vertexArray[bot_left*3 + 1], vertexArray[bot_left*3 + 2]);
+			vec3 v3 = SetVector(vertexArray[top_right*3], vertexArray[top_right*3 + 1], vertexArray[top_right*3 + 2]);
+			vec3 v4 = SetVector(vertexArray[bot_right*3], vertexArray[bot_right*3 + 1], vertexArray[bot_right*3 + 2]);
+
+			vec3 norm1 = CrossProduct(v2 - v1, v3 - v1);
+			vec3 norm2 = CrossProduct(v4 - v3, v4 - v2);
+
+			normalTriangleArray[index + 0] = norm1.x;
+			normalTriangleArray[index + 1] = norm1.y;
+			normalTriangleArray[index + 2] = norm1.z;
+
+			normalTriangleArray[index + 3] = norm2.x;
+			normalTriangleArray[index + 4] = norm2.y;
+			normalTriangleArray[index + 5] = norm2.z;
+
 		}
+
+		for (x = 0; x < tex->width-1; x++)
+			for (z = 0; z < tex->height-1; z++)
+			{
+				int index = (x + z * (tex->width-1))*6;
+
+				normalArray[indexArray[index]*3 + 0] = 0.0;
+				normalArray[indexArray[index]*3 + 1] = 0.0;
+				normalArray[indexArray[index]*3 + 2] = 0.0;
+			}
+
 
 	// End of terrain generation
 
@@ -80,12 +156,20 @@ TextureData ttex; // terrain
 void init(void)
 {
 	// GL inits
+
+	glutPassiveMotionFunc(mouse_motion);
+
+	speed = 0.3;
+	actual_speed = speed;
+
 	glClearColor(0.2,0.2,0.5,0);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	printError("GL inits");
 
-	projectionMatrix = frustum(-0.1, 0.1, -0.1, 0.1, 0.2, 50.0);
+	// projectionMatrix = frustum(-0.1, 0.1, -0.1, 0.1, 0.2, 50.0);
+	projectionMatrix = perspective(90, 1,
+	                      0.2, 5000);
 
 	// Load and compile shader
 	program = loadShaders("terrain.vert", "terrain.frag");
@@ -94,7 +178,7 @@ void init(void)
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("maskros512.tga", &tex1);
+	LoadTGATextureSimple("44-terrain.tga", &tex1);
 
 // Load terrain data
 
@@ -105,10 +189,22 @@ void init(void)
 
 void display(void)
 {
+
+
+	direction = SetVector(0,0,0);
+	actual_speed = speed;
+	float alpha = mouse_x * 2 * M_PI /(float)width;
+	float beta = - (0.5f - mouse_y /(float)height) * M_PI;
+
+	input_update();
+
+	camera_movement(alpha, beta);
+
 	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mat4 total, modelView, camMatrix;
+	mat4 total, modelView;
+	//mat4 camMatrix;
 
 	printError("pre display");
 
@@ -116,11 +212,11 @@ void display(void)
 
 	// Build matrix
 
-	vec3 cam = {0, 5, 8};
-	vec3 lookAtPoint = {2, 0, 2};
-	camMatrix = lookAt(cam.x, cam.y, cam.z,
-				lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
-				0.0, 1.0, 0.0);
+	// vec3 cam = {0, 5, 8};
+	// vec3 lookAtPoint = {2, 0, 2};
+	// camMatrix = lookAt(cam.x, cam.y, cam.z,
+				// lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
+				// 0.0, 1.0, 0.0);
 	modelView = IdentityMatrix();
 	total = Mult(camMatrix, modelView);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
@@ -133,15 +229,80 @@ void display(void)
 	glutSwapBuffers();
 }
 
+
+void camera_movement(float alpha, float beta){
+
+	if (direction.x != 0 || direction.y != 0 || direction.z != 0)
+		direction = ScalarMult(Normalize(direction), actual_speed);
+
+	mat4 look_mat = Mult(Rx(beta), Ry(alpha));
+	look = MultVec3(InvertMat4(look_mat), SetVector(0,0,1));
+
+	direction = MultVec3(InvertMat4(look_mat), direction);
+	p = VectorSub(p, direction);
+
+	camMatrix = Mult(look_mat, T(-p.x, -p.y, -p.z));
+}
+
+void mouse_motion (int x, int y) {
+	mouse_x = x;
+	mouse_y = y;
+}
+
+void input_update(void){
+
+	if (glutKeyIsDown('l')) {
+
+		if (glutKeyIsDown(FORWARDKEY))
+			z++;
+
+		if (glutKeyIsDown(BACKKEY))
+			z--;
+
+		if (glutKeyIsDown(LEFTKEY))
+			x++;
+
+		if (glutKeyIsDown(RIGHTKEY))
+			x--;
+
+		if (glutKeyIsDown(DOWNKEY))
+			y++;
+
+		if (glutKeyIsDown(UPKEY))
+			y--;
+	} else {
+		if (glutKeyIsDown(FORWARDKEY))
+			direction.z += 1;
+
+		if (glutKeyIsDown(BACKKEY))
+			direction.z -= 1;
+
+		if (glutKeyIsDown(LEFTKEY))
+			direction.x += 1;
+
+		if (glutKeyIsDown(RIGHTKEY))
+			direction.x -= 1;
+
+		if (glutKeyIsDown(DOWNKEY))
+			direction.y += 1;
+
+		if (glutKeyIsDown(UPKEY))
+			direction.y -= 1;
+	}
+	if (glutKeyIsDown('o'))
+		actual_speed *= 2;
+
+	if (glutKeyIsDown('p'))
+		actual_speed /= 2;
+
+	if (glutKeyIsDown('l')) printf("(%d, %d, %d)\n", x/4, y/4, z/4);
+}
+
+
 void timer(int i)
 {
 	glutTimerFunc(20, &timer, i);
 	glutPostRedisplay();
-}
-
-void mouse(int x, int y)
-{
-	printf("%d %d\n", x, y);
 }
 
 int main(int argc, char **argv)
@@ -149,13 +310,14 @@ int main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitContextVersion(3, 2);
-	glutInitWindowSize (600, 600);
+	width = 700;
+	height = 700;
+	glutInitWindowSize(width, height);
 	glutCreateWindow ("TSBK07 Lab 4");
 	glutDisplayFunc(display);
 	init ();
 	glutTimerFunc(20, &timer, 0);
 
-	glutPassiveMotionFunc(mouse);
 
 	glutMainLoop();
 	exit(0);
