@@ -52,7 +52,7 @@ void main(void)
 
 		light_result += clamp(vec3(i_total) * ((i == -1) ? vec3(1,1,1) : light_colors[i]), 0, 1);
 	}
-	out_Color *= vec4(clamp(light_result, 0, 1), 1);
+	out_Color *= vec4(clamp(light_result, 0, 1), 0.5);
 }
 
 float shade(int i){

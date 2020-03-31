@@ -101,7 +101,7 @@ vec3 p; //= SetVector(15,10,15); // Camera position
 vec3 l; //= SetVector(0,5,0); // Look-at point
 vec3 v; //= SetVector(0,1,0); //Up vector
 
-material wood = 			{0.4f, 0.3f, 50.0f, {0.5,0.3,0.0,1}};
+material wood = 			{0.4f, 0.7f, 150.0f, {0.5,0.3,0.0,1}};
 material blade_wood = {0.5f, 0.4f, 60.0f, {0.5,0.4,0.0,1}};
 material stone = 			{0.6f, 0.05f, 20.0f, {1.0,1.0,1.0,1}};
 material brick = 			{0.5f, 0.1f, 20.0f, {1.0,0.0,0.0,1}};
@@ -216,6 +216,7 @@ static void draw_object2(GLuint shader, Model * m, material mater, bool is_textu
 }
 
 static void draw_object3(GLuint shader, Model * m, material mater, mat4 mw){
+	glEnable(GL_DEPTH_TEST);
 	draw_object2(shader, m, mater, false, mw);
 }
 
@@ -236,6 +237,7 @@ void display(void)
 
   // Matrix projections
 	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+	t = 0;
 	mat4 t_rot = Rx(t/1000);
 
 	//balcony
@@ -274,20 +276,12 @@ void display(void)
 	//---------------------------------------//
 
 
-	draw_object3(shader1, wb, wood, wb_mw);
-	draw_object3(shader1, wr, brick, wr_mw);
-	draw_object3(shader1, ww, stone, ww_mw);
-	draw_object3(shader1, b, wood, b1_mw);
-	draw_object3(shader1, b, wood, b2_mw);
-	draw_object3(shader1, b, wood, b3_mw);
-	draw_object3(shader1, b, wood, b4_mw);
-	draw_object3(shader1, g, ground, g_mw);
 
 	mat4 r_mw;
 	material lapinoux;
-	lapinoux.ex = 20.0f;
+	lapinoux.ex = 100.0f;
 	lapinoux.k_d = 0.5;
-	lapinoux.k_spec= 0.1f;
+	lapinoux.k_spec = 1.0f;
 	for(int i = 0; i< 8;i++){
 		r_mw = Mult(Ry(i*M_PI_4 - t/1000),T(8 + sin(t/1000),2+sin(t/100 + i),0));
 		lapinoux.color = (vec4) {0.5,0.1*i,0.1,1.0f};
@@ -301,6 +295,14 @@ void display(void)
 	lapinoux.color = (vec4) {0,0,1,1};
 	draw_object3(shader1, r, lapinoux, T(0,1,10));
 
+	draw_object3(shader1, wb, wood, wb_mw);
+	draw_object3(shader1, wr, brick, wr_mw);
+	draw_object3(shader1, ww, stone, ww_mw);
+	draw_object3(shader1, b, wood, b1_mw);
+	draw_object3(shader1, b, wood, b2_mw);
+	draw_object3(shader1, b, wood, b3_mw);
+	draw_object3(shader1, b, wood, b4_mw);
+	draw_object3(shader1, g, ground, g_mw);
 	printError("display");
 
 	last_mouse_x = mouse_x;
