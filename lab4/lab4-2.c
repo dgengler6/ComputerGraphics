@@ -62,7 +62,7 @@ Model* GenerateTerrain(TextureData *tex)
 	GLfloat *vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *texCoordArray = malloc(sizeof(GLfloat) * 2 * vertexCount);
-	GLfloat *normalTriangleArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
+	GLfloat *normalTriangleArray = malloc(sizeof(GLfloat) * 3 * triangleCount);
 	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
 
 	printf("bpp %d\n", tex->bpp);
@@ -106,7 +106,7 @@ Model* GenerateTerrain(TextureData *tex)
 			vec3 v4 = SetVector(vertexArray[bot_right*3], vertexArray[bot_right*3 + 1], vertexArray[bot_right*3 + 2]);
 
 			vec3 norm1 = CalcNormalVector(v1,v2,v3);
-			vec3 norm2 = CalcNormalVector(v2,v3,v4);
+			vec3 norm2 = CalcNormalVector(v3,v2,v4);
 
 			normalTriangleArray[index + 0] = norm1.x;
 			normalTriangleArray[index + 1] = norm1.y;
@@ -120,16 +120,21 @@ Model* GenerateTerrain(TextureData *tex)
 
 	for (x = 0; x < tex->width-1; x++)
 		for (z = 0; z < tex->height-1; z++)
-		{	
-			float n2x= 0.0,n2y= 1.0,n2z= 0.0,n3x= 0.0,n3y= 1.0,n3z= 0.0,n4x= 0.0,n4y= 1.0,n4z= 0.0,n5x= 0.0,n5y= 1.0,n5z= 0.0,n6x= 0.0,n6y= 1.0,n6z = 0.0;
+		{
+			GLfloat n2x= 0.0, n2y= 1.0, n2z= 0.0;
+			GLfloat n3x= 0.0, n3y= 1.0, n3z= 0.0;
+			GLfloat n4x= 0.0, n4y= 1.0, n4z= 0.0;
+			GLfloat n5x= 0.0, n5y= 1.0, n5z= 0.0;
+			GLfloat n6x= 0.0, n6y= 1.0, n6z= 0.0;
+
 			int index = (x + z * (tex->width-1))*6;
 
-			float n1x = normalTriangleArray[index + 0];
-			float n1y = normalTriangleArray[index + 1];
-			float n1z = normalTriangleArray[index + 2];
-			
+			GLfloat n1x = normalTriangleArray[index + 0];
+			GLfloat n1y = normalTriangleArray[index + 1];
+			GLfloat n1z = normalTriangleArray[index + 2];
+
 			bool good_x = check_border(x-1,tex->width);
-			bool good_z = z > 0 ; 
+			bool good_z = z > 0 ;
 			index = (x-1 + (z-1) * (tex->width-1))*6;
 			if( good_x && good_z){
 				n2x = normalTriangleArray[index + 3];
@@ -146,7 +151,7 @@ Model* GenerateTerrain(TextureData *tex)
 				n4y = normalTriangleArray[index + 4];
 				n4z = normalTriangleArray[index + 5];
 			}
-			
+
 
 			index = (x + (z-1) * (tex->width-1))*6;
 			if(good_z){
@@ -159,9 +164,9 @@ Model* GenerateTerrain(TextureData *tex)
 			}
 
 
-			float resX = (n1x + n2x + n3x + n4x + n5x + n6x)/6 ;
-			float resY = (n1y + n2y + n3y + n4y + n5y + n6y)/6 ;
-			float resZ = (n1z + n2z + n3z + n4z + n5z + n6z)/6 ;
+			GLfloat resX = (n1x + n2x + n3x + n4x + n5x + n6x)/6 ;
+			GLfloat resY = (n1y + n2y + n3y + n4y + n5y + n6y)/6 ;
+			GLfloat resZ = (n1z + n2z + n3z + n4z + n5z + n6z)/6 ;
 			vec3 vRes = SetVector(resX,resY,resZ);
 			vec3 vResNorm = Normalize(vRes);
 
@@ -169,7 +174,7 @@ Model* GenerateTerrain(TextureData *tex)
 			normalArray[(x + z * tex->width)*3 + 0] = vResNorm.x;
 			normalArray[(x + z * tex->width)*3 + 1] = vResNorm.y;
 			normalArray[(x + z * tex->width)*3 + 2] = vResNorm.z;
-			}
+	}
 
 
 
