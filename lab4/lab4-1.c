@@ -94,7 +94,7 @@ void init(void)
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("maskros512.tga", &tex1);
+	LoadTGATextureSimple("textures/maskros512.tga", &tex1);
 
 // Load terrain data
 
