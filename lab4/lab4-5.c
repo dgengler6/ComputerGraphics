@@ -260,11 +260,7 @@ Model* GenerateTerrain(TextureData *tex)
 Model *m, *m2, *tm;
 // Reference to shader program
 GLuint program;
-<<<<<<< HEAD
-GLuint tex [30];
-=======
 GLuint tex0, tex1, tex2,tex3,tex4;
->>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 TextureData ttex; // terrain
 
 void init(void)
@@ -291,7 +287,7 @@ void init(void)
 	printError("init shader");
 
 
-	//Textures loading 
+	//Textures loading
 	LoadTGATextureSimple("textures/water3.tga", &tex0);
 	LoadTGATextureSimple("textures/sand1.tga", &tex1);
 	LoadTGATextureSimple("textures/rock3.tga", &tex2);
@@ -309,21 +305,13 @@ void init(void)
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D,tex4);
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
-<<<<<<< HEAD
-	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("textures/grass1.tga", &tex[0]);
-	LoadTGATextureSimple("textures/sand1.tga", &tex[1]);
-	LoadTGATextureSimple("textures/rock4.tga", &tex[2]);
-	LoadTGATextureSimple("textures/water3.tga", &tex[3]);
-=======
 	glUniform1i(glGetUniformLocation(program, "tex0"), 0); // Texture unit 0
 	glUniform1i(glGetUniformLocation(program, "tex1"), 1);
 	glUniform1i(glGetUniformLocation(program, "tex2"), 2);
 	glUniform1i(glGetUniformLocation(program, "tex3"), 3);
 	glUniform1i(glGetUniformLocation(program, "tex4"), 4);
 
-	
->>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
+
 
 // Load terrain data
 
@@ -354,7 +342,7 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-	//Time variable 
+	//Time variable
 
 	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
     glUniform1f(glGetUniformLocation(program, "time"), t);
@@ -366,11 +354,7 @@ void display(void)
 	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-<<<<<<< HEAD
-	glBindTexture(GL_TEXTURE_2D, tex[0]);		// Bind Our Texture tex1
-=======
 	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
->>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
 	glUseProgram(program);
@@ -379,11 +363,7 @@ void display(void)
 	total = Mult(camMatrix, m_mw);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-<<<<<<< HEAD
-	glBindTexture(GL_TEXTURE_2D, tex[1]);		// Bind Our Texture tex1
-=======
 	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
->>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");
