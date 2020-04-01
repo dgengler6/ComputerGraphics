@@ -261,7 +261,7 @@ Model* GenerateTerrain(TextureData *tex)
 Model *m, *m2, *tm;
 // Reference to shader program
 GLuint program;
-GLuint tex1, tex2;
+GLuint tex [30];
 TextureData ttex; // terrain
 
 void init(void)
@@ -289,7 +289,10 @@ void init(void)
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("textures/grid-decimal-512.tga", &tex1);
+	LoadTGATextureSimple("textures/grass1.tga", &tex[0]);
+	LoadTGATextureSimple("textures/sand1.tga", &tex[1]);
+	LoadTGATextureSimple("textures/rock4.tga", &tex[2]);
+	LoadTGATextureSimple("textures/water3.tga", &tex[3]);
 
 // Load terrain data
 
@@ -329,7 +332,7 @@ void display(void)
 	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	glBindTexture(GL_TEXTURE_2D, tex[0]);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
 	glUseProgram(program);
@@ -338,7 +341,7 @@ void display(void)
 	total = Mult(camMatrix, m_mw);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	glBindTexture(GL_TEXTURE_2D, tex[1]);		// Bind Our Texture tex1
 	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");
