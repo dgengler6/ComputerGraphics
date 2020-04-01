@@ -11,6 +11,7 @@
 	#define UPKEY 'e'
 	#define FORWARDKEY 'z'
 	#define BACKKEY 's'
+	#define ACTIONKEY 'r'
 #else
 	#define RIGHTKEY 'd'
 	#define LEFTKEY 'a'
@@ -18,9 +19,7 @@
 	#define UPKEY 'e'
 	#define FORWARDKEY 'w'
 	#define BACKKEY 's'
-
-#define ACTIONKEY 'r'
-
+	#define ACTIONKEY 'r'
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
@@ -133,7 +132,7 @@ Model* GenerateTerrain(TextureData *tex)
 		{
 // Vertex array. You need to scale this properly
 			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 50.0;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 5.0;
 			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
 
 // Texture coordinates. You may want to scale them.
@@ -261,7 +260,11 @@ Model* GenerateTerrain(TextureData *tex)
 Model *m, *m2, *tm;
 // Reference to shader program
 GLuint program;
+<<<<<<< HEAD
 GLuint tex [30];
+=======
+GLuint tex0, tex1, tex2,tex3,tex4;
+>>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 TextureData ttex; // terrain
 
 void init(void)
@@ -287,12 +290,40 @@ void init(void)
 	glUseProgram(program);
 	printError("init shader");
 
+
+	//Textures loading 
+	LoadTGATextureSimple("textures/water3.tga", &tex0);
+	LoadTGATextureSimple("textures/sand1.tga", &tex1);
+	LoadTGATextureSimple("textures/rock3.tga", &tex2);
+	LoadTGATextureSimple("textures/grass1.tga", &tex3);
+	LoadTGATextureSimple("textures/snow4.tga", &tex4);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,tex0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D,tex1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D,tex2);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D,tex3);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D,tex4);
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+<<<<<<< HEAD
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
 	LoadTGATextureSimple("textures/grass1.tga", &tex[0]);
 	LoadTGATextureSimple("textures/sand1.tga", &tex[1]);
 	LoadTGATextureSimple("textures/rock4.tga", &tex[2]);
 	LoadTGATextureSimple("textures/water3.tga", &tex[3]);
+=======
+	glUniform1i(glGetUniformLocation(program, "tex0"), 0); // Texture unit 0
+	glUniform1i(glGetUniformLocation(program, "tex1"), 1);
+	glUniform1i(glGetUniformLocation(program, "tex2"), 2);
+	glUniform1i(glGetUniformLocation(program, "tex3"), 3);
+	glUniform1i(glGetUniformLocation(program, "tex4"), 4);
+
+	
+>>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 
 // Load terrain data
 
@@ -323,7 +354,10 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+	//Time variable 
 
+	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+    glUniform1f(glGetUniformLocation(program, "time"), t);
 	printError("pre display");
 
 	glUseProgram(program);
@@ -332,7 +366,11 @@ void display(void)
 	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
+<<<<<<< HEAD
 	glBindTexture(GL_TEXTURE_2D, tex[0]);		// Bind Our Texture tex1
+=======
+	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+>>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
 	glUseProgram(program);
@@ -341,7 +379,11 @@ void display(void)
 	total = Mult(camMatrix, m_mw);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
+<<<<<<< HEAD
 	glBindTexture(GL_TEXTURE_2D, tex[1]);		// Bind Our Texture tex1
+=======
+	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+>>>>>>> 8c6355f910aaef765dac60a3f4618ca29d1f22fe
 	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");

@@ -11,6 +11,7 @@
 	#define UPKEY 'e'
 	#define FORWARDKEY 'z'
 	#define BACKKEY 's'
+	#define ACTIONKEY 'r'
 #else
 	#define RIGHTKEY 'd'
 	#define LEFTKEY 'a'
@@ -18,9 +19,7 @@
 	#define UPKEY 'e'
 	#define FORWARDKEY 'w'
 	#define BACKKEY 's'
-
-#define ACTIONKEY 'r'
-
+	#define ACTIONKEY 'r'
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
