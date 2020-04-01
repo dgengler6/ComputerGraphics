@@ -40,10 +40,6 @@ vec3 direction; vec3 look;
 GLfloat speed;
 GLfloat actual_speed;
 
-int x = 0;
-int y = 0;
-int z = 0;
-
 vec3 p;
 
 int width, height;
@@ -61,7 +57,7 @@ bool check_border(int index, int width){
 	return (index >=0 && ((index + 1) % width)!=0 )|| index == 0;
 }
 
-bool find_height(float x, float z, Model* terrain){
+bool find_height(float x, float z, Model* terrain, TextureData *tex){
 
     int xf = (int)(floor(x));
     // int xc = (int)(ceil(x));
@@ -72,12 +68,26 @@ bool find_height(float x, float z, Model* terrain){
 		float xr = x - xf;
 		float zr = z - zf;
 
+		int index = (x + z * (tex->width-1))*6;
 
-		int index = (xf + zf + sqrt(terrain->numVertices))*3;
-		vec3 yeet = SetVector(terrain->vertexArray[index],terrain->vertexArray[index+1],terrain->vertexArray[index+2]);
+		int top_left = terrain->indexArray[index + 0];
+		int bot_left = terrain->indexArray[index + 1];
+		int top_right = terrain->indexArray[index + 2];
+		int bot_right = terrain->indexArray[index + 5];
 
+		vec3 v1 = SetVector(terrain->vertexArray[top_left*3], terrain->vertexArray[top_left*3 + 1], terrain->vertexArray[top_left*3 + 2]);
+		vec3 v2 = SetVector(terrain->vertexArray[bot_left*3], terrain->vertexArray[bot_left*3 + 1], terrain->vertexArray[bot_left*3 + 2]);
+		vec3 v3 = SetVector(terrain->vertexArray[top_right*3], terrain->vertexArray[top_right*3 + 1], terrain->vertexArray[top_right*3 + 2]);
+		vec3 v4 = SetVector(terrain->vertexArray[bot_right*3], terrain->vertexArray[bot_right*3 + 1], terrain->vertexArray[bot_right*3 + 2]);
 
-    printf("%f",yeet.x);
+		printf("%f, %f\n", xr, zr);
+
+		vec3 yeet = v1;
+
+		printVec3(debug_pos);
+    printVec3(yeet);
+		debug_pos.y = yeet.y;
+
 
 }
 
@@ -285,22 +295,27 @@ void display(void)
 	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mat4 total, tm_mv;
-	mat4 m_mw = model_to_world(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1));
-	//mat4 camMatrix;
+
 
 	printError("pre display");
 
 	glUseProgram(program);
 
-	// Build matrix
-
-	tm_mv = IdentityMatrix();
-	total = Mult(camMatrix, tm_mv);
+	mat4 tm_mv = IdentityMatrix();
+	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
 	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
+
+	glUseProgram(program);
+
+	mat4 m_mw = model_to_world(debug_pos, SetVector(0,0,0), SetVector(1,1,1));
+	total = Mult(camMatrix, m_mw);
+	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
+
+	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");
 
@@ -332,22 +347,24 @@ void input_update(void){
 	if (glutKeyIsDown('l')) {
 
 		if (glutKeyIsDown(FORWARDKEY))
-			z++;
+			debug_pos.z += actual_speed;
 
 		if (glutKeyIsDown(BACKKEY))
-			z--;
+			debug_pos.z -= actual_speed;
 
 		if (glutKeyIsDown(LEFTKEY))
-			x++;
+			debug_pos.x += actual_speed;
 
 		if (glutKeyIsDown(RIGHTKEY))
-			x--;
+			debug_pos.x -= actual_speed;
 
 		if (glutKeyIsDown(DOWNKEY))
-			y++;
+			debug_pos.y += actual_speed;
 
 		if (glutKeyIsDown(UPKEY))
-			y--;
+			debug_pos.y -= actual_speed;
+		find_height(debug_pos.x, debug_pos.z, tm, &ttex);
+
 	} else {
 		if (glutKeyIsDown(FORWARDKEY))
 			direction.z += 1;
@@ -368,15 +385,14 @@ void input_update(void){
 			direction.y -= 1;
 
     if (glutKeyIsDown(ACTIONKEY))
-          find_height(1.2,3.4,tm);
+          find_height(1.2,3.4,tm, &ttex);
 	}
 	if (glutKeyIsDown('o'))
-		actual_speed *= 2;
+		actual_speed *= 4;
 
 	if (glutKeyIsDown('p'))
-		actual_speed /= 2;
+		actual_speed /= 4;
 
-	if (glutKeyIsDown('l')) printf("(%d, %d, %d)\n", x/4, y/4, z/4);
 }
 
 mat4 model_to_world(const vec3 t, const vec3 r, const vec3 s){
