@@ -282,7 +282,7 @@ void init(void)
 	                      0.2, 5000);
 
 	// Load and compile shader
-	program = loadShaders("terrain.vert", "terrain.frag");
+	program = loadShaders("terrain-1-4.vert", "terrain-1-4.frag");
 	glUseProgram(program);
 	printError("init shader");
 

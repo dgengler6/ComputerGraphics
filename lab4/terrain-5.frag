@@ -41,7 +41,7 @@ void main(void)
 		}else{
 			outColor = mix(outColor,t2,vec4(st*1.3));
 		}
-		
+
 	}
 	if(exPos.y >= 25 ){
 		outColor = t2;
@@ -51,6 +51,6 @@ void main(void)
 		outColor = mix(t2,t4,vec4((exPos.y-35)/20));
 
 	}
-	
+
 	outColor *=  (0 + 1*clamp(dot(normalize(exNormal),light), 0, 1));
 }
