@@ -76,7 +76,7 @@ GLfloat height_from_triangle(vec3 a, vec3 ab, vec3 n, GLfloat d){
 	return a.y + mu * ab.y;
 }
 
-bool find_height(float x, float z, Model* terrain, TextureData *tex){
+GLfloat find_height(float x, float z, Model* terrain, TextureData *tex){
 
     int xf = (int)(floor(x));
 
@@ -109,9 +109,10 @@ bool find_height(float x, float z, Model* terrain, TextureData *tex){
 			d = - DotProduct(n, v4);
 		}
 
-		debug_pos.y = height_from_triangle(SetVector(x,0,z), SetVector(0,1,0), n, d);
+		GLfloat res = height_from_triangle(SetVector(x,0,z), SetVector(0,1,0), n, d);
+		debug_pos.y = res;
 
-		return true;
+		return res;
 }
 
 Model* GenerateTerrain(TextureData *tex)
@@ -356,7 +357,6 @@ void camera_movement(float alpha, float beta){
 
 	direction = MultVec3(InvertMat4(look_mat), direction);
 	p = VectorSub(p, direction);
-	p = SetVector(debug_pos.x, debug_pos.y + 0.2, debug_pos.z - 0.2);
 
 	camMatrix = Mult(look_mat, T(-p.x, -p.y, -p.z));
 }
