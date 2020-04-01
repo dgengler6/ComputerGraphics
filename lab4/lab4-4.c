@@ -45,6 +45,7 @@ vec3 p;
 int width, height;
 
 vec3 debug_pos = {0.0,0.0,0.0};
+GLfloat debug_val = 0.1;
 
 void mouse_motion (int x, int y);
 void input_update(void);
@@ -57,18 +58,36 @@ bool check_border(int index, int width){
 	return (index >=0 && ((index + 1) % width)!=0 )|| index == 0;
 }
 
+bool is_first_triangle(float x, float z, vec3 v1, vec3 v4 ){
+	 GLfloat d1x = x - v1.x;
+	 GLfloat d1z = z - v1.z;
+
+	 GLfloat d2x = v4.x - x;
+	 GLfloat d2z = v4.z - z;
+
+	 GLfloat dist = sqrt(d1x * d1x + d1z * d1z);
+	 GLfloat dist2 = sqrt(d2x * d2x + d2z * d2z);
+
+	 return dist < dist2;
+}
+
+GLfloat height_from_triangle(vec3 a, vec3 ab, vec3 n, GLfloat d){
+	GLfloat mu = (-d - DotProduct(n,a))/DotProduct(n, ab);
+	return a.y + mu * ab.y;
+}
+
 bool find_height(float x, float z, Model* terrain, TextureData *tex){
 
     int xf = (int)(floor(x));
-    // int xc = (int)(ceil(x));
 
     int zf = (int)(floor(z));
-    // int zc = (int)(ceil(z));
+		zf = zf >= 0 ? zf : 0;
+		zf = zf < tex->height - 1 ? zf : tex->height - 2;
 
-		float xr = x - xf;
-		float zr = z - zf;
+		xf = xf >= 0 ? xf : 0;
+		xf = xf < tex->width - 1 ? xf : tex->width - 2;
 
-		int index = (x + z * (tex->width-1))*6;
+		int index = (xf + zf * (tex->width-1))*6;
 
 		int top_left = terrain->indexArray[index + 0];
 		int bot_left = terrain->indexArray[index + 1];
@@ -80,15 +99,19 @@ bool find_height(float x, float z, Model* terrain, TextureData *tex){
 		vec3 v3 = SetVector(terrain->vertexArray[top_right*3], terrain->vertexArray[top_right*3 + 1], terrain->vertexArray[top_right*3 + 2]);
 		vec3 v4 = SetVector(terrain->vertexArray[bot_right*3], terrain->vertexArray[bot_right*3 + 1], terrain->vertexArray[bot_right*3 + 2]);
 
-		printf("%f, %f\n", xr, zr);
+		vec3 n = SetVector(0,0,0);
+		GLfloat d = 0;
+		if (is_first_triangle(x,z,v1,v4)) {
+			n = CalcNormalVector(v1, v2, v3);
+			d = - DotProduct(n, v1);
+		} else {
+			n = CalcNormalVector(v4, v3, v2);
+			d = - DotProduct(n, v4);
+		}
 
-		vec3 yeet = v1;
+		debug_pos.y = height_from_triangle(SetVector(x,0,z), SetVector(0,1,0), n, d);
 
-		printVec3(debug_pos);
-    printVec3(yeet);
-		debug_pos.y = yeet.y;
-
-
+		return true;
 }
 
 Model* GenerateTerrain(TextureData *tex)
@@ -144,7 +167,7 @@ Model* GenerateTerrain(TextureData *tex)
 			vec3 v4 = SetVector(vertexArray[bot_right*3], vertexArray[bot_right*3 + 1], vertexArray[bot_right*3 + 2]);
 
 			vec3 norm1 = CalcNormalVector(v1,v2,v3);
-			vec3 norm2 = CalcNormalVector(v3,v2,v4);
+			vec3 norm2 = CalcNormalVector(v4,v3,v2);
 
 			normalTriangleArray[index + 0] = norm1.x;
 			normalTriangleArray[index + 1] = norm1.y;
@@ -310,7 +333,7 @@ void display(void)
 
 	glUseProgram(program);
 
-	mat4 m_mw = model_to_world(debug_pos, SetVector(0,0,0), SetVector(1,1,1));
+	mat4 m_mw = model_to_world(debug_pos, SetVector(0,0,0), SetVector(debug_val,0.1,debug_val));
 	total = Mult(camMatrix, m_mw);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
@@ -333,6 +356,7 @@ void camera_movement(float alpha, float beta){
 
 	direction = MultVec3(InvertMat4(look_mat), direction);
 	p = VectorSub(p, direction);
+	p = SetVector(debug_pos.x, debug_pos.y + 0.2, debug_pos.z - 0.2);
 
 	camMatrix = Mult(look_mat, T(-p.x, -p.y, -p.z));
 }
@@ -347,22 +371,22 @@ void input_update(void){
 	if (glutKeyIsDown('l')) {
 
 		if (glutKeyIsDown(FORWARDKEY))
-			debug_pos.z += actual_speed;
+			debug_pos.z += 1;
 
 		if (glutKeyIsDown(BACKKEY))
-			debug_pos.z -= actual_speed;
+			debug_pos.z -= 1;
 
 		if (glutKeyIsDown(LEFTKEY))
-			debug_pos.x += actual_speed;
+			debug_pos.x += 1;
 
 		if (glutKeyIsDown(RIGHTKEY))
-			debug_pos.x -= actual_speed;
+			debug_pos.x -= 1;
 
 		if (glutKeyIsDown(DOWNKEY))
-			debug_pos.y += actual_speed;
+			debug_pos.y += 1;
 
 		if (glutKeyIsDown(UPKEY))
-			debug_pos.y -= actual_speed;
+			debug_pos.y -= 1;
 		find_height(debug_pos.x, debug_pos.z, tm, &ttex);
 
 	} else {
