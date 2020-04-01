@@ -25,8 +25,10 @@
 #include "MicroGlut.h"
 #include "GL_utilities.h"
 #include "VectorUtils3.h"
+#include <math.h>
 #include "loadobj.h"
 #include "LoadTGA.h"
+#include <stdarg.h>
 
 mat4 projectionMatrix;
 mat4 camMatrix;
@@ -46,9 +48,14 @@ vec3 p;
 
 int width, height;
 
+vec3 debug_pos = {0.0,0.0,0.0};
+
 void mouse_motion (int x, int y);
 void input_update(void);
 void camera_movement(float alpha, float beta);
+mat4 mult_rep(bool from_left, int n, ...);
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
+mat4 model_to_world(const vec3 t, const vec3 r, const vec3 s);
 
 bool check_border(int index, int width){
 	return (index >=0 && ((index + 1) % width)!=0 )|| index == 0;
@@ -254,6 +261,9 @@ void init(void)
 
 	LoadTGATextureData("fft-terrain.tga", &ttex);
 	tm = GenerateTerrain(&ttex);
+
+	m = LoadModelPlus("groundsphere.obj");
+
 	printError("init terrain");
 }
 
@@ -270,10 +280,13 @@ void display(void)
 
 	camera_movement(alpha, beta);
 
+
+
 	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mat4 total, modelView;
+	mat4 total, tm_mv;
+	mat4 m_mw = model_to_world(SetVector(0,0,0), SetVector(0,-M_PI_2,0), SetVector(1,1,1));
 	//mat4 camMatrix;
 
 	printError("pre display");
@@ -282,13 +295,8 @@ void display(void)
 
 	// Build matrix
 
-	// vec3 cam = {0, 5, 8};
-	// vec3 lookAtPoint = {2, 0, 2};
-	// camMatrix = lookAt(cam.x, cam.y, cam.z,
-				// lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
-				// 0.0, 1.0, 0.0);
-	modelView = IdentityMatrix();
-	total = Mult(camMatrix, modelView);
+	tm_mv = IdentityMatrix();
+	total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
 	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
@@ -371,6 +379,42 @@ void input_update(void){
 	if (glutKeyIsDown('l')) printf("(%d, %d, %d)\n", x/4, y/4, z/4);
 }
 
+mat4 model_to_world(const vec3 t, const vec3 r, const vec3 s){
+	return mult_rep(false, 3 , S(s.x,s.y,s.z), angle_transform(r.x, r.y, r.z), T(t.x, t.y, t.z));
+}
+
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z) {
+	GLfloat c1 = cos(z);
+	GLfloat s1 = sin(z);
+	GLfloat c2 = cos(y);
+	GLfloat s2 = sin(y);
+	GLfloat c3 = cos(x);
+	GLfloat s3 = sin(x);
+
+	mat4 rot = {{c2*c3, -c2*s3, s2, 0,
+									c1*s3 + c3*s1*s2, c1*c3 - s1*s2*s3, -c2*s1, 0,
+									s1*s3 - c1*c3*s2, c3*s1 + c1*s2*s3, c1*c2 , 0,
+									0, 0 , 0, 1
+								}};
+  return rot;
+}
+
+mat4 mult_rep(bool from_left, int n, ...){
+	va_list valist;
+	va_start(valist, n);
+
+	mat4 result = IdentityMatrix();
+
+	if (from_left)
+		while (n-- > 0)
+			result = Mult(result, (mat4) va_arg(valist, mat4));
+	else
+		while (n-- > 0)
+			result = Mult((mat4) va_arg(valist, mat4), result);
+
+	va_end(valist);
+	return result;
+}
 
 void timer(int i)
 {
