@@ -19,13 +19,16 @@
 	#define FORWARDKEY 'w'
 	#define BACKKEY 's'
 
+#define ACTIONKEY 'r'
 
 #endif
 #include "MicroGlut.h"
 #include "GL_utilities.h"
 #include "VectorUtils3.h"
+#include <math.h>
 #include "loadobj.h"
 #include "LoadTGA.h"
+#include <stdarg.h>
 
 mat4 projectionMatrix;
 mat4 camMatrix;
@@ -37,20 +40,79 @@ vec3 direction; vec3 look;
 GLfloat speed;
 GLfloat actual_speed;
 
-int x = 0;
-int y = 0;
-int z = 0;
-
 vec3 p;
 
 int width, height;
 
+vec3 debug_pos = {0.0,0.0,0.0};
+GLfloat debug_val = 0.1;
+
 void mouse_motion (int x, int y);
 void input_update(void);
 void camera_movement(float alpha, float beta);
+mat4 mult_rep(bool from_left, int n, ...);
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z);
+mat4 model_to_world(const vec3 t, const vec3 r, const vec3 s);
 
 bool check_border(int index, int width){
 	return (index >=0 && ((index + 1) % width)!=0 )|| index == 0;
+}
+
+bool is_first_triangle(float x, float z, vec3 v1, vec3 v4 ){
+	 GLfloat d1x = x - v1.x;
+	 GLfloat d1z = z - v1.z;
+
+	 GLfloat d2x = v4.x - x;
+	 GLfloat d2z = v4.z - z;
+
+	 GLfloat dist = sqrt(d1x * d1x + d1z * d1z);
+	 GLfloat dist2 = sqrt(d2x * d2x + d2z * d2z);
+
+	 return dist < dist2;
+}
+
+GLfloat height_from_triangle(vec3 a, vec3 ab, vec3 n, GLfloat d){
+	GLfloat mu = (-d - DotProduct(n,a))/DotProduct(n, ab);
+	return a.y + mu * ab.y;
+}
+
+GLfloat find_height(float x, float z, Model* terrain, TextureData *tex){
+
+    int xf = (int)(floor(x));
+
+    int zf = (int)(floor(z));
+		zf = zf >= 0 ? zf : 0;
+		zf = zf < tex->height - 1 ? zf : tex->height - 2;
+
+		xf = xf >= 0 ? xf : 0;
+		xf = xf < tex->width - 1 ? xf : tex->width - 2;
+
+		int index = (xf + zf * (tex->width-1))*6;
+
+		int top_left = terrain->indexArray[index + 0];
+		int bot_left = terrain->indexArray[index + 1];
+		int top_right = terrain->indexArray[index + 2];
+		int bot_right = terrain->indexArray[index + 5];
+
+		vec3 v1 = SetVector(terrain->vertexArray[top_left*3], terrain->vertexArray[top_left*3 + 1], terrain->vertexArray[top_left*3 + 2]);
+		vec3 v2 = SetVector(terrain->vertexArray[bot_left*3], terrain->vertexArray[bot_left*3 + 1], terrain->vertexArray[bot_left*3 + 2]);
+		vec3 v3 = SetVector(terrain->vertexArray[top_right*3], terrain->vertexArray[top_right*3 + 1], terrain->vertexArray[top_right*3 + 2]);
+		vec3 v4 = SetVector(terrain->vertexArray[bot_right*3], terrain->vertexArray[bot_right*3 + 1], terrain->vertexArray[bot_right*3 + 2]);
+
+		vec3 n = SetVector(0,0,0);
+		GLfloat d = 0;
+		if (is_first_triangle(x,z,v1,v4)) {
+			n = CalcNormalVector(v1, v2, v3);
+			d = - DotProduct(n, v1);
+		} else {
+			n = CalcNormalVector(v4, v3, v2);
+			d = - DotProduct(n, v4);
+		}
+
+		GLfloat res = height_from_triangle(SetVector(x,0,z), SetVector(0,1,0), n, d);
+		debug_pos.y = res;
+
+		return res;
 }
 
 Model* GenerateTerrain(TextureData *tex)
@@ -106,7 +168,7 @@ Model* GenerateTerrain(TextureData *tex)
 			vec3 v4 = SetVector(vertexArray[bot_right*3], vertexArray[bot_right*3 + 1], vertexArray[bot_right*3 + 2]);
 
 			vec3 norm1 = CalcNormalVector(v1,v2,v3);
-			vec3 norm2 = CalcNormalVector(v3,v2,v4);
+			vec3 norm2 = CalcNormalVector(v4,v3,v2);
 
 			normalTriangleArray[index + 0] = norm1.x;
 			normalTriangleArray[index + 1] = norm1.y;
@@ -227,12 +289,15 @@ void init(void)
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
 	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("textures/rock4.tga", &tex1);
+	LoadTGATextureSimple("textures/grid-decimal-512.tga", &tex1);
 
 // Load terrain data
 
 	LoadTGATextureData("fft-terrain.tga", &ttex);
 	tm = GenerateTerrain(&ttex);
+
+	m = LoadModelPlus("groundsphere.obj");
+
 	printError("init terrain");
 }
 
@@ -249,29 +314,32 @@ void display(void)
 
 	camera_movement(alpha, beta);
 
+
+
 	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mat4 total, modelView;
-	//mat4 camMatrix;
+
 
 	printError("pre display");
 
 	glUseProgram(program);
 
-	// Build matrix
-
-	// vec3 cam = {0, 5, 8};
-	// vec3 lookAtPoint = {2, 0, 2};
-	// camMatrix = lookAt(cam.x, cam.y, cam.z,
-				// lookAtPoint.x, lookAtPoint.y, lookAtPoint.z,
-				// 0.0, 1.0, 0.0);
-	modelView = IdentityMatrix();
-	total = Mult(camMatrix, modelView);
+	mat4 tm_mv = IdentityMatrix();
+	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
 	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
+
+	glUseProgram(program);
+
+	mat4 m_mw = model_to_world(debug_pos, SetVector(0,0,0), SetVector(debug_val,0.1,debug_val));
+	total = Mult(camMatrix, m_mw);
+	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
+
+	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");
 
@@ -303,22 +371,24 @@ void input_update(void){
 	if (glutKeyIsDown('l')) {
 
 		if (glutKeyIsDown(FORWARDKEY))
-			z++;
+			debug_pos.z += 1;
 
 		if (glutKeyIsDown(BACKKEY))
-			z--;
+			debug_pos.z -= 1;
 
 		if (glutKeyIsDown(LEFTKEY))
-			x++;
+			debug_pos.x += 1;
 
 		if (glutKeyIsDown(RIGHTKEY))
-			x--;
+			debug_pos.x -= 1;
 
 		if (glutKeyIsDown(DOWNKEY))
-			y++;
+			debug_pos.y += 1;
 
 		if (glutKeyIsDown(UPKEY))
-			y--;
+			debug_pos.y -= 1;
+		find_height(debug_pos.x, debug_pos.z, tm, &ttex);
+
 	} else {
 		if (glutKeyIsDown(FORWARDKEY))
 			direction.z += 1;
@@ -337,16 +407,54 @@ void input_update(void){
 
 		if (glutKeyIsDown(UPKEY))
 			direction.y -= 1;
+
+    if (glutKeyIsDown(ACTIONKEY))
+          find_height(1.2,3.4,tm, &ttex);
 	}
 	if (glutKeyIsDown('o'))
-		actual_speed *= 2;
+		actual_speed *= 4;
 
 	if (glutKeyIsDown('p'))
-		actual_speed /= 2;
+		actual_speed /= 4;
 
-	if (glutKeyIsDown('l')) printf("(%d, %d, %d)\n", x/4, y/4, z/4);
 }
 
+mat4 model_to_world(const vec3 t, const vec3 r, const vec3 s){
+	return mult_rep(false, 3 , S(s.x,s.y,s.z), angle_transform(r.x, r.y, r.z), T(t.x, t.y, t.z));
+}
+
+mat4 angle_transform(GLfloat x, GLfloat y, GLfloat z) {
+	GLfloat c1 = cos(z);
+	GLfloat s1 = sin(z);
+	GLfloat c2 = cos(y);
+	GLfloat s2 = sin(y);
+	GLfloat c3 = cos(x);
+	GLfloat s3 = sin(x);
+
+	mat4 rot = {{c2*c3, -c2*s3, s2, 0,
+									c1*s3 + c3*s1*s2, c1*c3 - s1*s2*s3, -c2*s1, 0,
+									s1*s3 - c1*c3*s2, c3*s1 + c1*s2*s3, c1*c2 , 0,
+									0, 0 , 0, 1
+								}};
+  return rot;
+}
+
+mat4 mult_rep(bool from_left, int n, ...){
+	va_list valist;
+	va_start(valist, n);
+
+	mat4 result = IdentityMatrix();
+
+	if (from_left)
+		while (n-- > 0)
+			result = Mult(result, (mat4) va_arg(valist, mat4));
+	else
+		while (n-- > 0)
+			result = Mult((mat4) va_arg(valist, mat4), result);
+
+	va_end(valist);
+	return result;
+}
 
 void timer(int i)
 {
