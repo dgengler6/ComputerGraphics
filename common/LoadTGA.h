@@ -57,9 +57,9 @@ bool LoadTGATextureData(char *filename, TextureData *texture);
 #define TGA_OK							 0
 
 // Save functions
-int SaveDataToTGA(char			*filename, 
-			 short int		width, 
-			 short int		height, 
+int SaveDataToTGA(char			*filename,
+			 short int		width,
+			 short int		height,
 			 unsigned char	pixelDepth,
 			 unsigned char	*imageData);
 void SaveTGA(TextureData *tex, char *filename);
@@ -70,4 +70,3 @@ void SaveFramebufferToTGA(char *filename, GLint x, GLint y, GLint w, GLint h);
 #endif
 
 #endif
-

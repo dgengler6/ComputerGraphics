@@ -30,7 +30,7 @@ Model* GenerateTerrain(TextureData *tex)
 		{
 // Vertex array. You need to scale this properly
 			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 100.0;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 255.0;
 			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
 // Normal vectors. You need to calculate these.
 			normalArray[(x + z * tex->width)*3 + 0] = 0.0;
@@ -141,7 +141,7 @@ void timer(int i)
 
 void mouse(int x, int y)
 {
-	printf("%d %d\n", x, y);
+	// printf("%d %d\n", x, y);
 }
 
 int main(int argc, char **argv)

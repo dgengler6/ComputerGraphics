@@ -3,6 +3,8 @@
 #ifdef __APPLE__
 	#define GL_SILENCE_DEPRECATION
 	#include <OpenGL/gl3.h>
+	#include "../common/Mac/MicroGlut.h"
+
 	// Linking hint for Lightweight IDE
 	// uses framework Cocoa
 	#define RIGHTKEY 'd'
@@ -12,6 +14,9 @@
 	#define FORWARDKEY 'z'
 	#define BACKKEY 's'
 #else
+	#include "../common/Linux/MicroGlut.h"
+
+
 	#define RIGHTKEY 'd'
 	#define LEFTKEY 'a'
 	#define DOWNKEY 'q'
@@ -21,11 +26,11 @@
 
 
 #endif
-#include "MicroGlut.h"
-#include "GL_utilities.h"
-#include "VectorUtils3.h"
-#include "loadobj.h"
-#include "LoadTGA.h"
+
+#include "../common/GL_utilities.h"
+#include "../common/VectorUtils3.h"
+#include "../common/loadobj.h"
+#include "../common/LoadTGA.h"
 
 mat4 projectionMatrix;
 mat4 camMatrix;
@@ -62,9 +67,8 @@ Model* GenerateTerrain(TextureData *tex)
 	GLfloat *vertexArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *normalArray = malloc(sizeof(GLfloat) * 3 * vertexCount);
 	GLfloat *texCoordArray = malloc(sizeof(GLfloat) * 2 * vertexCount);
-	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
-	// WE CREATE A NEW ARRAY TO STORE OUR NORMAL FOR EACH TRIANGLE BASED ON THE INDEXARRAY INDEXATION
 	GLfloat *normalTriangleArray = malloc(sizeof(GLfloat) * 3 * triangleCount);
+	GLuint *indexArray = malloc(sizeof(GLuint) * triangleCount*3);
 
 	printf("bpp %d\n", tex->bpp);
 	for (x = 0; x < tex->width; x++)
@@ -82,7 +86,7 @@ Model* GenerateTerrain(TextureData *tex)
 	for (x = 0; x < tex->width-1; x++)
 		for (z = 0; z < tex->height-1; z++)
 		{
-		// Fetching the indexes
+
 			int top_left = x + z * tex->width;
 			int bot_left = x + (z+1) * tex->width;
 			int top_right = x+1 + z * tex->width;
@@ -100,13 +104,12 @@ Model* GenerateTerrain(TextureData *tex)
 			indexArray[index + 4] = bot_left;
 			indexArray[index + 5] = bot_right;
 
-		// Fetching the 4 vertices of a quad
+
 			vec3 v1 = SetVector(vertexArray[top_left*3], vertexArray[top_left*3 + 1], vertexArray[top_left*3 + 2]);
 			vec3 v2 = SetVector(vertexArray[bot_left*3], vertexArray[bot_left*3 + 1], vertexArray[bot_left*3 + 2]);
 			vec3 v3 = SetVector(vertexArray[top_right*3], vertexArray[top_right*3 + 1], vertexArray[top_right*3 + 2]);
 			vec3 v4 = SetVector(vertexArray[bot_right*3], vertexArray[bot_right*3 + 1], vertexArray[bot_right*3 + 2]);
 
-		// Saving the triangle normals in our new array
 			vec3 norm1 = CalcNormalVector(v1,v2,v3);
 			vec3 norm2 = CalcNormalVector(v3,v2,v4);
 
@@ -137,9 +140,6 @@ Model* GenerateTerrain(TextureData *tex)
 
 			bool good_x = check_border(x-1,tex->width);
 			bool good_z = z > 0 ;
-
-		// Computing all possible neighbours
-
 			index = (x-1 + (z-1) * (tex->width-1))*6;
 			if( good_x && good_z){
 				n2x = normalTriangleArray[index + 3];
@@ -157,6 +157,7 @@ Model* GenerateTerrain(TextureData *tex)
 				n4z = normalTriangleArray[index + 5];
 			}
 
+
 			index = (x + (z-1) * (tex->width-1))*6;
 			if(good_z){
 				n5x = normalTriangleArray[index + 0];
@@ -167,7 +168,6 @@ Model* GenerateTerrain(TextureData *tex)
 				n6z = normalTriangleArray[index + 5];
 			}
 
-		// Finishing by doing the mean
 
 			GLfloat resX = (n1x + n2x + n3x + n4x + n5x + n6x)/6 ;
 			GLfloat resY = (n1y + n2y + n3y + n4y + n5y + n6y)/6 ;
@@ -175,7 +175,7 @@ Model* GenerateTerrain(TextureData *tex)
 			vec3 vRes = SetVector(resX,resY,resZ);
 			vec3 vResNorm = Normalize(vRes);
 
-	  // High precision Normal vectors. 
+// Normal vectors. You need to calculate these.
 			normalArray[(x + z * tex->width)*3 + 0] = vResNorm.x;
 			normalArray[(x + z * tex->width)*3 + 1] = vResNorm.y;
 			normalArray[(x + z * tex->width)*3 + 2] = vResNorm.z;

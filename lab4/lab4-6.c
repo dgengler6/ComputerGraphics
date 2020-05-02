@@ -114,7 +114,7 @@ GLfloat find_height(float x, float z, Model* terrain, TextureData *tex){
 		return res;
 }
 
-Model* GenerateTerrain(TextureData *tex)
+Model* GenerateTerrain(TextureData *tex, GLfloat height)
 {
 
 	int vertexCount = tex->width * tex->height;
@@ -132,7 +132,7 @@ Model* GenerateTerrain(TextureData *tex)
 		{
 // Vertex array. You need to scale this properly
 			vertexArray[(x + z * tex->width)*3 + 0] = x / 1.0;
-			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 50.0;
+			vertexArray[(x + z * tex->width)*3 + 1] = tex->imageData[(x + z * tex->width) * (tex->bpp/8)] / 255.0 *  height;
 			vertexArray[(x + z * tex->width)*3 + 2] = z / 1.0;
 
 // Texture coordinates. You may want to scale them.
@@ -256,12 +256,92 @@ Model* GenerateTerrain(TextureData *tex)
 }
 
 
+typedef struct
+{
+	GLubyte r,g,b,a;
+} color;
+
+typedef struct
+{
+	TextureData * image;
+	GLubyte * conversion;
+	GLuint bufID;
+	GLuint texID;
+	GLuint nb_of_colors;
+	color * color_map;
+}SplatMap;
+
+
+
+void convertToIndex(color to_test, GLubyte * to_update, SplatMap * splat, GLuint start_index, int color_size){
+	GLuint i = 0;
+	if (color_size == 3) {
+
+		while (i < splat->nb_of_colors && !((to_test.r == splat->color_map[i].r)
+																				&& (to_test.g == splat->color_map[i].g) &&
+																				(to_test.b == splat->color_map[i].b))) {
+		 																i++;
+																	}
+
+		 if (i < splat->nb_of_colors) {
+	 	   to_update[0] = (start_index + i);
+			 // to_update[1] = (start_index + i);
+			 // to_update[2] = (start_index + i);
+			 // to_update[3] = (start_index + i);
+		}
+	}
+
+}
+
+SplatMap * initSplatMap(TextureData * tex, GLuint start_index, GLuint nb_of_colors, ...){
+	va_list valist;
+	va_start(valist, nb_of_colors);
+	SplatMap * splatmap = malloc(sizeof(SplatMap));
+
+	if (splatmap == NULL) return NULL;
+
+	splatmap->image = tex;
+	splatmap->nb_of_colors = nb_of_colors;
+	color * colors = calloc(nb_of_colors, sizeof(color));
+	if (colors == NULL) return NULL;
+
+	int color_size = tex->bpp/8;
+	GLubyte * conversion = calloc(tex->width * tex->height * 3, sizeof(GLubyte));
+	if (conversion == NULL) return NULL;
+
+	int i = 0;
+
+	while (i < nb_of_colors) {
+		colors[i++] = (color) va_arg(valist, color);
+	}
+	splatmap->color_map = colors;
+	splatmap->conversion = conversion;
+
+
+	int index = 0;
+
+	for (i=0; i < tex->width * tex->height * color_size ; i+= color_size) {
+		convertToIndex((color) {tex->imageData[i], tex->imageData[i+1], tex->imageData[i+2], 1},
+										 &splatmap->conversion[index], splatmap, start_index, color_size);
+		index++;
+	}
+
+	glGenTextures(1,&splatmap->texID);
+	glBindTexture(GL_TEXTURE_2D, splatmap->texID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, splatmap->image->w, splatmap->image->h, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, splatmap[0].conversion);
+	va_end(valist);
+	return splatmap;
+}
+
 // vertex array object
 Model *m, *m2, *tm;
 // Reference to shader program
 GLuint program;
-GLuint tex1, tex2;
+GLuint texs [128];
 TextureData ttex; // terrain
+SplatMap splatmap;
 
 void init(void)
 {
@@ -282,18 +362,59 @@ void init(void)
 	                      0.2, 5000);
 
 	// Load and compile shader
-	program = loadShaders("terrain-1-4.vert", "terrain-1-4.frag");
+	program = loadShaders("terrain-6.vert", "terrain-6.frag");
 	glUseProgram(program);
 	printError("init shader");
 
+
+	//Textures loading
+	LoadTGATextureSimple("textures/water3.tga", &texs[0]);
+	LoadTGATextureSimple("textures/sand1.tga", &texs[1]);
+	LoadTGATextureSimple("textures/rock3.tga", &texs[2]);
+	LoadTGATextureSimple("textures/grass1.tga", &texs[3]);
+	LoadTGATextureSimple("textures/snow4.tga", &texs[4]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,texs[0]);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D,texs[1]);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D,texs[2]);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D,texs[3]);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D,texs[4]);
+
 	glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
-	glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-	LoadTGATextureSimple("textures/grid-decimal-512.tga", &tex1);
+	// glUniform2f(glGetUniformLocation(program, "sizeFactor"), 0.1, 0.1);
+	glUniform1i(glGetUniformLocation(program, "tex0"), 0); // Texture unit 0
+	glUniform1i(glGetUniformLocation(program, "tex1"), 1);
+	glUniform1i(glGetUniformLocation(program, "tex2"), 2);
+	glUniform1i(glGetUniformLocation(program, "tex3"), 3);
+	glUniform1i(glGetUniformLocation(program, "tex4"), 4);
+
+	printError("init textures");
+
+	TextureData splattex;
+	LoadTGATexture("texsplat2.tga", &splattex);
+	SplatMap * splatmap = initSplatMap(&splattex, 0, 4, (color) {0x22, 0xf6, 0xf4, 0xff},
+																											(color) {0xff, 0xf4, 0x41, 0xff},
+																											(color) {0x64, 0x5f, 0x0f, 0xff},
+																											(color) {0x12, 0xae, 0x54, 0xff});
+
+	glUniform2i(glGetUniformLocation(program, "terrainSize"), (float) ttex.width, (float)ttex.height);
+	glUniform2i(glGetUniformLocation(program, "splatSize"), splatmap->image->width, splatmap->image->height);
+
+	glActiveTexture(GL_TEXTURE10);
+	glBindTexture(GL_TEXTURE_2D,splatmap->texID);
+	glUniform1i( glGetUniformLocation( program, "splatmap" ), 10 );
+
+	printError("init splatmap");
 
 // Load terrain data
 
 	LoadTGATextureData("fft-terrain.tga", &ttex);
-	tm = GenerateTerrain(&ttex);
+	tm = GenerateTerrain(&ttex, 10);
 
 	m = LoadModelPlus("groundsphere.obj");
 
@@ -319,7 +440,10 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+	//Time variable
 
+	GLfloat t = (GLfloat)glutGet(GLUT_ELAPSED_TIME);
+    glUniform1f(glGetUniformLocation(program, "time"), t);
 	printError("pre display");
 
 	glUseProgram(program);
@@ -328,7 +452,7 @@ void display(void)
 	mat4 total = Mult(camMatrix, tm_mv);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(tm, program, "inPosition", "inNormal", "inTexCoord");
 
 	glUseProgram(program);
@@ -337,7 +461,7 @@ void display(void)
 	total = Mult(camMatrix, m_mw);
 	glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, total.m);
 
-	glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
+	//glBindTexture(GL_TEXTURE_2D, tex1);		// Bind Our Texture tex1
 	DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
 
 	printError("display 2");
@@ -370,22 +494,22 @@ void input_update(void){
 	if (glutKeyIsDown('l')) {
 
 		if (glutKeyIsDown(FORWARDKEY))
-			debug_pos.z += 0.1;
+			debug_pos.z += 1;
 
 		if (glutKeyIsDown(BACKKEY))
-			debug_pos.z -= 0.1;
+			debug_pos.z -= 1;
 
 		if (glutKeyIsDown(LEFTKEY))
-			debug_pos.x += 0.1;
+			debug_pos.x += 1;
 
 		if (glutKeyIsDown(RIGHTKEY))
-			debug_pos.x -= 0.1;
+			debug_pos.x -= 1;
 
 		if (glutKeyIsDown(DOWNKEY))
-			debug_pos.y += 0.1;
+			debug_pos.y += 1;
 
 		if (glutKeyIsDown(UPKEY))
-			debug_pos.y -= 0.1;
+			debug_pos.y -= 1;
 		find_height(debug_pos.x, debug_pos.z, tm, &ttex);
 
 	} else {
